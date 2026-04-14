@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMS 관리자</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #ffffff; --surface: #f5f5f5; --surface2: #e8e8e8;
+  --border: #d0d0d0; --accent: #C9A227; --accent-h: #A8841A;
+  --danger: #e05353; --success: #4caf7d; --info: #4a90d9;
+  --text: #1a1a1a; --muted: #888888; --radius: 10px;
+}
+body { background:var(--bg); color:var(--text); font-family:'Segoe UI','Malgun Gothic',system-ui,sans-serif; font-size:15px; min-height:100vh; }
+
+/* ── Header ── */
+header { background:var(--surface); border-bottom:2px solid var(--border); padding:16px 32px; display:flex; align-items:center; gap:14px; }
+header h1 { font-size:19px; font-weight:700; flex:1; }
+.badge { background:var(--accent); color:#fff; font-size:11px; padding:2px 9px; border-radius:20px; font-weight:600; }
+.server-info { font-size:12px; color:var(--muted); padding:4px 10px; background:var(--surface2); border-radius:6px; }
+.btn-logout { padding:6px 16px; background:transparent; border:1.5px solid var(--border); border-radius:8px; color:var(--muted); font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; transition:all .2s; }
+.btn-logout:hover { border-color:var(--danger); color:var(--danger); }
+
+/* ── Layout ── */
+.container { max-width:1100px; margin:0 auto; padding:28px 24px; }
+
+/* ── Tabs ── */
+.tabs { display:flex; gap:4px; background:var(--surface); border-radius:var(--radius); padding:5px; margin-bottom:28px; }
+.tab-btn { flex:1; padding:10px 16px; border:none; border-radius:8px; background:transparent; color:var(--muted); font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; }
+.tab-btn.active { background:var(--accent); color:#fff; }
+.tab-btn:not(.active):hover { background:var(--surface2); color:var(--text); }
+.tab-content { display:none; } .tab-content.active { display:block; }
+
+/* ── Common ── */
+.section { margin-bottom:24px; }
+.section-title { font-size:16px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+.form-group { display:flex; flex-direction:column; gap:5px; }
+.form-group label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+input[type=text], input[type=password], input[type=number], select {
+  background:var(--surface2); border:1px solid var(--border); border-radius:7px;
+  padding:9px 12px; font-size:14px; color:var(--text); outline:none; transition:border-color .2s;
+}
+input:focus, select:focus { border-color:var(--accent); }
+input::placeholder { color:var(--muted); opacity:.6; }
+
+/* ── Buttons ── */
+.btn { padding:9px 20px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-primary:hover { background:var(--accent-h); }
+.btn-danger  { background:transparent; border:1.5px solid var(--danger); color:var(--danger); }
+.btn-danger:hover  { background:var(--danger); color:#fff; }
+.btn-ghost   { background:transparent; border:1.5px solid var(--border); color:var(--muted); }
+.btn-ghost:hover   { border-color:var(--accent); color:var(--accent); }
+.btn-sm { padding:5px 12px; font-size:12px; }
+.btn-full { width:100%; justify-content:center; padding:13px; font-size:15px; }
+
+/* ── Card ── */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+.card-title { font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+
+/* ── Table ── */
+table { width:100%; border-collapse:collapse; background:var(--surface); border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); }
+thead tr { background:var(--surface2); }
+th { padding:11px 16px; text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); border-bottom:1px solid var(--border); }
+td { padding:11px 16px; font-size:14px; border-bottom:1px solid var(--border); }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:var(--surface2); }
+.empty-row td { text-align:center; color:var(--muted); padding:40px; }
+
+/* ── Toast ── */
+#toast { position:fixed; bottom:24px; right:24px; padding:12px 20px; border-radius:10px; font-size:14px; font-weight:600; color:#fff; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; }
+#toast.show { opacity:1; }
+#toast.success { background:#2a7a4f; }
+#toast.error   { background:#c0392b; }
+#toast.info    { background:#2471a3; }
+
+/* ── Badge ── */
+.tag { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+.tag-video { background:#e8f4fd; color:#2471a3; }
+.tag-image { background:#eafaf1; color:#1e8449; }
+.tag-cctv  { background:#fef9e7; color:#9a7d0a; }
+.tag-online  { background:#eafaf1; color:#1e8449; }
+.tag-offline { background:#fdf2f2; color:#c0392b; }
+
+/* ════════════════════════════════════════════
+   탭1 콘텐츠 — 미디어 라이브러리
+════════════════════════════════════════════ */
+.upload-zone { border:2px dashed var(--border); border-radius:var(--radius); padding:36px; text-align:center; cursor:pointer; transition:border-color .2s; position:relative; }
+.upload-zone:hover, .upload-zone.dragover { border-color:var(--accent); }
+.upload-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.upload-zone .icon { font-size:36px; margin-bottom:8px; }
+.upload-zone p { color:var(--muted); font-size:14px; }
+.upload-zone strong { color:var(--accent); }
+.media-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; }
+.media-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.media-thumb { width:100%; height:110px; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.media-thumb img { width:100%; height:100%; object-fit:cover; }
+.media-thumb .video-icon { font-size:32px; color:#fff; opacity:.7; }
+.media-info { padding:10px 12px; }
+.media-name { font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:4px; }
+.media-meta { display:flex; justify-content:space-between; align-items:center; }
+.media-size { font-size:11px; color:var(--muted); }
+
+/* ════════════════════════════════════════════
+   탭2 스케줄
+════════════════════════════════════════════ */
+.schedule-layout { display:grid; grid-template-columns:240px 1fr; gap:20px; min-height:520px; }
+.channel-list { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); display:flex; flex-direction:column; }
+.channel-list-header { padding:14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.channel-list-header span { font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.channel-items { flex:1; overflow-y:auto; }
+.channel-item { padding:12px 16px; cursor:pointer; border-bottom:1px solid var(--border); font-size:14px; font-weight:600; transition:background .15s; display:flex; align-items:center; justify-content:space-between; }
+.channel-item:last-child { border-bottom:none; }
+.channel-item.active { background:rgba(201,162,39,.12); color:var(--accent); }
+.channel-item:not(.active):hover { background:var(--surface2); }
+.channel-item .ch-count { font-size:11px; color:var(--muted); font-weight:400; }
+.schedule-editor { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); display:flex; flex-direction:column; }
+.schedule-editor-header { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+.schedule-editor-header h3 { flex:1; font-size:15px; font-weight:700; }
+.schedule-items { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:8px; min-height:300px; }
+.sched-item { background:#fff; border:1px solid var(--border); border-radius:8px; padding:10px 14px; display:flex; align-items:center; gap:10px; }
+.sched-item .drag-handle { color:var(--muted); cursor:grab; font-size:16px; flex-shrink:0; }
+.sched-item .item-info { flex:1; min-width:0; }
+.sched-item .item-name { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sched-item .item-type { font-size:11px; color:var(--muted); }
+.sched-duration { display:flex; align-items:center; gap:4px; font-size:12px; color:var(--muted); flex-shrink:0; }
+.sched-duration input { width:56px; padding:4px 6px; font-size:12px; text-align:right; }
+.sched-item-empty { text-align:center; color:var(--muted); padding:48px; font-size:14px; }
+.media-picker { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-top:10px; }
+.media-picker-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:8px; max-height:220px; overflow-y:auto; margin-top:10px; }
+.picker-item { background:#fff; border:1px solid var(--border); border-radius:6px; padding:8px; cursor:pointer; text-align:center; transition:all .15s; }
+.picker-item:hover { border-color:var(--accent); }
+.picker-item .p-name { font-size:11px; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ════════════════════════════════════════════
+   탭3 CCTV
+════════════════════════════════════════════ */
+.split-selector { display:flex; gap:8px; margin-bottom:20px; }
+.split-btn { padding:9px 28px; border:2px solid var(--border); border-radius:8px; background:var(--surface); color:var(--muted); font-size:15px; font-weight:700; cursor:pointer; transition:all .2s; }
+.split-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(201,162,39,.1); }
+.camera-grid { display:grid; gap:16px; grid-template-columns:repeat(2, 1fr); }
+.camera-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
+.camera-card-title { font-size:13px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.5px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.divider { border:none; border-top:2px solid var(--border); margin:28px 0; }
+td.cam-name { font-weight:700; color:var(--accent); }
+td.cam-pass { font-family:monospace; font-size:13px; color:var(--muted); }
+.btn-action { padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; border-radius:5px; border:1.5px solid; transition:all .15s; }
+.btn-action.edit   { border-color:var(--info); color:var(--info); background:transparent; }
+.btn-action.edit:hover   { background:var(--info); color:#fff; }
+.btn-action.del    { border-color:var(--danger); color:var(--danger); background:transparent; }
+.btn-action.del:hover    { background:var(--danger); color:#fff; }
+.btn-action.restart{ border-color:var(--success); color:var(--success); background:transparent; }
+.btn-action.restart:hover{ background:var(--success); color:#fff; }
+
+/* ════════════════════════════════════════════
+   탭4 디스플레이
+════════════════════════════════════════════ */
+.display-add-form { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:20px; }
+.ctrl-btns { display:flex; gap:6px; flex-wrap:wrap; }
+
+/* ════════════════════════════════════════════
+   탭5 로그
+════════════════════════════════════════════ */
+.log-toolbar { display:flex; gap:10px; margin-bottom:14px; align-items:center; flex-wrap:wrap; }
+.log-filter-btns { display:flex; gap:4px; }
+.filter-btn { padding:6px 14px; border:1.5px solid var(--border); border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; background:transparent; color:var(--muted); transition:all .15s; }
+.filter-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(201,162,39,.1); }
+.log-search { flex:1; min-width:180px; }
+.log-list { font-family:monospace; font-size:12px; display:flex; flex-direction:column; gap:3px; max-height:600px; overflow-y:auto; }
+.log-entry { padding:7px 12px; border-radius:6px; background:var(--surface); border:1px solid var(--border); line-height:1.5; }
+.log-entry .ts { color:var(--muted); margin-right:8px; }
+.log-entry .cat-stream   { color:#2471a3; font-weight:700; }
+.log-entry .cat-control  { color:#1e8449; font-weight:700; }
+.log-entry .cat-schedule { color:#884ea0; font-weight:700; }
+.log-entry .cat-system   { color:#7f8c8d; font-weight:700; }
+.log-entry .ev { color:var(--text); margin-left:6px; }
+.log-entry .detail { color:var(--muted); font-size:11px; margin-top:2px; }
+.log-paging { display:flex; gap:8px; margin-top:12px; align-items:center; }
+
+/* overlay upload */
+.png-drop { border:2px dashed var(--border); border-radius:8px; padding:20px; text-align:center; cursor:pointer; position:relative; transition:border-color .2s; }
+.png-drop:hover { border-color:var(--accent); }
+.png-drop input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.png-preview { margin-top:10px; display:none; }
+.png-preview img { max-width:100%; max-height:80px; border-radius:5px; border:1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9A227" stroke-width="2">
+    <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+  </svg>
+  <h1>CMS</h1>
+  <span class="badge">관리자</span>
+  <span id="serverInfo" class="server-info">연결 중...</span>
+  <a href="/logout" class="btn-logout">로그아웃</a>
+</header>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('media')">콘텐츠</button>
+    <button class="tab-btn" onclick="switchTab('schedule')">스케줄</button>
+    <button class="tab-btn" onclick="switchTab('cctv')">CCTV</button>
+    <button class="tab-btn" onclick="switchTab('display')">디스플레이</button>
+    <button class="tab-btn" onclick="switchTab('log')">로그</button>
+  </div>
+
+  <!-- ═══ 탭1: 콘텐츠 ═══ -->
+  <div id="tab-media" class="tab-content active">
+    <div class="section">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" multiple accept="image/*,video/*" onchange="uploadFiles(this.files)"/>
+        <div class="icon">📁</div>
+        <p><strong>클릭하거나 파일을 드래그</strong>하여 업로드</p>
+        <p style="margin-top:6px;font-size:12px;">이미지 (JPG, PNG, GIF) · 동영상 (MP4, MOV, AVI) · 최대 2GB</p>
+      </div>
+      <div id="uploadProgress" style="margin-top:10px;display:none;">
+        <div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;">
+          <div id="progressBar" style="height:100%;background:var(--accent);width:0;transition:width .3s;"></div>
+        </div>
+        <p id="uploadStatus" style="font-size:12px;color:var(--muted);margin-top:4px;"></p>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">
+        <span>미디어 라이브러리</span>
+        <span id="mediaCount" style="font-size:13px;color:var(--muted);font-weight:400;"></span>
+        <button class="btn btn-ghost btn-sm" onclick="loadMedia()">새로고침</button>
+      </div>
+      <div id="mediaGrid" class="media-grid"></div>
+    </div>
+  </div>
+
+  <!-- ═══ 탭2: 스케줄 ═══ -->
+  <div id="tab-schedule" class="tab-content">
+    <div class="schedule-layout">
+      <div class="channel-list">
+        <div class="channel-list-header">
+          <span>채널 목록</span>
+          <button class="btn btn-primary btn-sm" onclick="addChannel()">+ 추가</button>
+        </div>
+        <div class="channel-items" id="channelList"></div>
+      </div>
+      <div class="schedule-editor" id="scheduleEditor">
+        <div style="display:flex;align-items:center;justify-content:center;flex:1;color:var(--muted);font-size:14px;">채널을 선택하세요</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 탭3: CCTV ═══ -->
+  <div id="tab-cctv" class="tab-content">
+    <!-- ZIP 생성 -->
+    <div class="section">
+      <div class="section-title">콘텐츠 ZIP 생성 <span style="font-size:12px;color:var(--muted);font-weight:400;">(MagicInfo 호환)</span></div>
+      <div class="card">
+        <div style="margin-bottom:16px;">
+          <div class="form-group" style="margin-bottom:10px;"><label>분할 모드</label></div>
+          <div class="split-selector">
+            <button class="split-btn active" onclick="setSplit(1,this)">단독</button>
+            <button class="split-btn" onclick="setSplit(2,this)">2분할</button>
+            <button class="split-btn" onclick="setSplit(4,this)">4분할</button>
+          </div>
+        </div>
+        <div id="cameraCards" class="camera-grid"></div>
+        <hr class="divider" style="margin:18px 0 16px;">
+        <div>
+          <div class="section-title" style="font-size:14px;">오버레이 이미지 <span style="font-size:11px;color:var(--muted);font-weight:400;">선택사항</span></div>
+          <div class="png-drop" id="pngDrop" onclick="document.getElementById('pngInput').click()">
+            <input type="file" id="pngInput" accept="image/png" style="display:none" onchange="handlePng(this)"/>
+            <p style="font-size:13px;color:var(--muted);">PNG 파일을 선택하세요 (투명 배경 권장)</p>
+          </div>
+          <div class="png-preview" id="pngPreview">
+            <img id="pngPreviewImg" src=""/>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+              <span id="pngName" style="font-size:12px;color:var(--accent);"></span>
+              <button class="btn btn-danger btn-sm" onclick="removePng()">삭제</button>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-top:18px;" onclick="generateZip()">ZIP 저장</button>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- 카메라 관리 -->
+    <div class="section">
+      <div class="section-title">카메라 관리 <span id="camCount" style="font-size:13px;color:var(--muted);font-weight:400;"></span></div>
+      <table id="camTable">
+        <thead><tr><th>이름</th><th>호스트</th><th>아이디</th><th>비밀번호</th><th>상태</th><th>작업</th></tr></thead>
+        <tbody id="camTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ 탭4: 디스플레이 ═══ -->
+  <div id="tab-display" class="tab-content">
+    <div class="display-add-form">
+      <div class="section-title">디스플레이 등록</div>
+      <div class="row">
+        <div class="form-group"><label>이름</label><input type="text" id="dName" placeholder="로비 TV 1" style="width:160px;"/></div>
+        <div class="form-group"><label>IP 주소</label><input type="text" id="dIp" placeholder="192.168.1.101" style="width:160px;"/></div>
+        <div class="form-group"><label>위치</label><input type="text" id="dLocation" placeholder="1층 로비" style="width:140px;"/></div>
+        <div class="form-group"><label>채널</label>
+          <select id="dChannel" style="width:140px;">
+            <option value="">-- 미지정 --</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="addDisplay()">등록</button>
+      </div>
+    </div>
+    <div class="section-title">등록된 디스플레이 <span id="dispCount" style="font-size:13px;color:var(--muted);font-weight:400;"></span></div>
+    <table>
+      <thead><tr><th>이름</th><th>IP</th><th>위치</th><th>채널</th><th>제어</th><th>삭제</th></tr></thead>
+      <tbody id="dispTbody"></tbody>
+    </table>
+  </div>
+
+  <!-- ═══ 탭5: 로그 ═══ -->
+  <div id="tab-log" class="tab-content">
+    <div class="log-toolbar">
+      <div class="log-filter-btns">
+        <button class="filter-btn active" onclick="setLogFilter('all',this)">전체</button>
+        <button class="filter-btn" onclick="setLogFilter('stream',this)">스트림</button>
+        <button class="filter-btn" onclick="setLogFilter('control',this)">제어</button>
+        <button class="filter-btn" onclick="setLogFilter('schedule',this)">스케줄</button>
+        <button class="filter-btn" onclick="setLogFilter('system',this)">시스템</button>
+      </div>
+      <input type="text" id="logSearch" class="log-search" placeholder="검색..." oninput="renderLogs()"/>
+      <button class="btn btn-ghost btn-sm" onclick="loadLogs()">새로고침</button>
+    </div>
+    <div id="logList" class="log-list"></div>
+    <div class="log-paging">
+      <button class="btn btn-ghost btn-sm" id="prevLogBtn" onclick="logPage--; renderLogs()">이전</button>
+      <span id="logPageInfo" style="font-size:13px;color:var(--muted);"></span>
+      <button class="btn btn-ghost btn-sm" id="nextLogBtn" onclick="logPage++; renderLogs()">다음</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+// 공통 유틸
+// ════════════════════════════════════════
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(t._t); t._t = setTimeout(() => t.className = '', 2800);
+}
+async function api(method, url, body) {
+  const opts = { method, headers: {} };
+  if (body && !(body instanceof FormData)) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  else if (body) opts.body = body;
+  const r = await fetch(url, opts);
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || r.statusText); }
+  return r.json();
+}
+function fmtSize(b) {
+  if (b < 1024) return b + 'B';
+  if (b < 1048576) return (b/1024).toFixed(1) + 'KB';
+  if (b < 1073741824) return (b/1048576).toFixed(1) + 'MB';
+  return (b/1073741824).toFixed(2) + 'GB';
+}
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('ko-KR') + ' ' + d.toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// ════════════════════════════════════════
+// 탭 전환
+// ════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['media','schedule','cctv','display','log'][i] === name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'media')    loadMedia();
+  if (name === 'schedule') { loadSchedules(); loadMediaForPicker(); }
+  if (name === 'cctv')     loadCameras();
+  if (name === 'display')  { loadDisplays(); loadChannelsForSelect(); }
+  if (name === 'log')      loadLogs();
+}
+
+// ════════════════════════════════════════
+// 서버 정보
+// ════════════════════════════════════════
+async function loadServerInfo() {
+  try {
+    const d = await api('GET', '/api/server-info');
+    document.getElementById('serverInfo').textContent = `${d.ip}:${d.port} · 카메라 ${d.cameras} · WS ${d.wsClients}`;
+  } catch {}
+}
+
+// ════════════════════════════════════════
+// 탭1: 미디어 라이브러리
+// ════════════════════════════════════════
+let mediaList = [];
+
+async function loadMedia() {
+  try {
+    mediaList = await api('GET', '/api/media');
+    renderMedia();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function renderMedia() {
+  const grid = document.getElementById('mediaGrid');
+  document.getElementById('mediaCount').textContent = `(${mediaList.length}개)`;
+  if (!mediaList.length) { grid.innerHTML = '<p style="color:var(--muted);font-size:14px;padding:20px;">업로드된 파일이 없습니다.</p>'; return; }
+  grid.innerHTML = mediaList.map(f => `
+    <div class="media-card">
+      <div class="media-thumb">
+        ${f.type==='image'
+          ? `<img src="/media/${encodeURIComponent(f.filename)}" loading="lazy"/>`
+          : `<div class="video-icon">▶</div>`}
+      </div>
+      <div class="media-info">
+        <div class="media-name" title="${f.filename}">${f.filename.replace(/^\d+_/, '')}</div>
+        <div class="media-meta">
+          <span class="tag tag-${f.type}">${f.type==='video'?'동영상':'이미지'}</span>
+          <span class="media-size">${fmtSize(f.size)}</span>
+        </div>
+        <button class="btn btn-danger btn-sm" style="width:100%;margin-top:8px;" onclick="deleteMedia('${f.filename}')">삭제</button>
+      </div>
+    </div>`).join('');
+}
+
+async function uploadFiles(files) {
+  if (!files || !files.length) return;
+  const prog = document.getElementById('uploadProgress');
+  const bar  = document.getElementById('progressBar');
+  const stat = document.getElementById('uploadStatus');
+  prog.style.display = 'block'; bar.style.width = '0';
+  const form = new FormData();
+  for (const f of files) form.append('files', f);
+  stat.textContent = `업로드 중... (${files.length}개)`;
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.onprogress = e => { if (e.lengthComputable) bar.style.width = (e.loaded/e.total*100)+'%'; };
+    await new Promise((res, rej) => {
+      xhr.onload = () => xhr.status < 400 ? res() : rej(new Error('업로드 실패'));
+      xhr.onerror = rej;
+      xhr.open('POST', '/api/media'); xhr.send(form);
+    });
+    toast(`${files.length}개 파일 업로드 완료`);
+    await loadMedia();
+  } catch(e) { toast(e.message, 'error'); }
+  finally { setTimeout(() => { prog.style.display = 'none'; bar.style.width = '0'; }, 1000); }
+  document.getElementById('fileInput').value = '';
+}
+
+async function deleteMedia(filename) {
+  if (!confirm(`"${filename.replace(/^\d+_/,'')}" 파일을 삭제하시겠습니까?`)) return;
+  try {
+    await api('DELETE', `/api/media/${encodeURIComponent(filename)}`);
+    toast('파일 삭제 완료'); loadMedia();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// 드래그앤드롭
+const uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('dragover'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('dragover'));
+uz.addEventListener('drop', e => { e.preventDefault(); uz.classList.remove('dragover'); uploadFiles(e.dataTransfer.files); });
+
+// ════════════════════════════════════════
+// 탭2: 스케줄
+// ════════════════════════════════════════
+let scheduleData = { channels: [] };
+let selectedChannelId = null;
+let pickerMediaList = [];
+
+async function loadSchedules() {
+  try { scheduleData = await api('GET', '/api/schedules'); renderChannelList(); }
+  catch(e) { toast(e.message, 'error'); }
+}
+async function loadMediaForPicker() {
+  try { pickerMediaList = await api('GET', '/api/media'); }
+  catch {}
+}
+
+function renderChannelList() {
+  const el = document.getElementById('channelList');
+  if (!scheduleData.channels.length) { el.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:var(--muted);">채널 없음</div>'; return; }
+  el.innerHTML = scheduleData.channels.map(ch => `
+    <div class="channel-item ${ch.id===selectedChannelId?'active':''}" onclick="selectChannel('${ch.id}')">
+      <span>${ch.name}</span>
+      <span class="ch-count">${ch.items.length}개</span>
+    </div>`).join('');
+  if (selectedChannelId) renderScheduleEditor(scheduleData.channels.find(c=>c.id===selectedChannelId));
+}
+
+function selectChannel(id) {
+  selectedChannelId = id;
+  renderChannelList();
+}
+
+function renderScheduleEditor(ch) {
+  if (!ch) { document.getElementById('scheduleEditor').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;flex:1;color:var(--muted);font-size:14px;">채널 없음</div>'; return; }
+  document.getElementById('scheduleEditor').innerHTML = `
+    <div class="schedule-editor-header">
+      <h3 id="chNameDisplay">${ch.name}</h3>
+      <button class="btn btn-ghost btn-sm" onclick="renameChannel('${ch.id}')">이름 변경</button>
+      <button class="btn btn-primary btn-sm" onclick="pushSchedule('${ch.id}')">즉시 푸시</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteChannel('${ch.id}')">채널 삭제</button>
+    </div>
+    <div class="schedule-items" id="schedItems">
+      ${ch.items.length ? ch.items.map((item,i) => schedItemHtml(item, i, ch.id)).join('') : '<div class="sched-item-empty">아이템이 없습니다. 아래에서 미디어를 추가하세요.</div>'}
+    </div>
+    <div style="padding:12px 14px;border-top:1px solid var(--border);">
+      <button class="btn btn-ghost btn-sm" onclick="togglePicker('${ch.id}')">+ 미디어 추가</button>
+      <button class="btn btn-ghost btn-sm" onclick="addCctvItem('${ch.id}')">+ CCTV 추가</button>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto;float:right;" onclick="saveSchedule('${ch.id}')">저장</button>
+    </div>
+    <div id="mediaPicker_${ch.id}" class="media-picker" style="display:none;margin:0 14px 14px;">
+      <div class="row" style="margin-bottom:8px;"><span style="font-size:13px;font-weight:600;">미디어 선택</span></div>
+      <div class="media-picker-grid" id="pickerGrid_${ch.id}"></div>
+    </div>`;
+  renderPickerGrid(ch.id);
+}
+
+function schedItemHtml(item, i, chId) {
+  const name = item.type === 'cctv' ? item.cameraName : item.filename.replace(/^\d+_/, '');
+  const typeTag = item.type === 'video' ? 'tag-video' : item.type === 'cctv' ? 'tag-cctv' : 'tag-image';
+  const typeLabel = item.type === 'video' ? '동영상' : item.type === 'cctv' ? 'CCTV' : '이미지';
+  return `<div class="sched-item" data-id="${item.id}" data-chid="${chId}">
+    <span class="drag-handle" title="순서 변경 — 위/아래 버튼 사용">☰</span>
+    <div class="item-info">
+      <div class="item-name" title="${name}">${name}</div>
+      <div class="item-type"><span class="tag ${typeTag}">${typeLabel}</span></div>
+    </div>
+    <div class="sched-duration">
+      <input type="number" min="1" max="3600" value="${item.duration||10}" style="width:56px;" onchange="updateItemDuration('${chId}','${item.id}',this.value)"/>
+      <span>초</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <button class="btn-action edit" onclick="moveItem('${chId}','${item.id}',-1)" title="위로">▲</button>
+      <button class="btn-action del" onclick="moveItem('${chId}','${item.id}',1)" title="아래로">▼</button>
+    </div>
+    <button class="btn-action del" onclick="removeItem('${chId}','${item.id}')">✕</button>
+  </div>`;
+}
+
+function renderPickerGrid(chId) {
+  const grid = document.getElementById('pickerGrid_' + chId);
+  if (!grid) return;
+  grid.innerHTML = pickerMediaList.map(f => `
+    <div class="picker-item" onclick="addMediaToChannel('${chId}','${f.filename}','${f.type}')">
+      ${f.type==='image' ? `<img src="/media/${encodeURIComponent(f.filename)}" style="width:100%;height:60px;object-fit:cover;border-radius:4px;"/>` : `<div style="width:100%;height:60px;background:#222;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;">▶</div>`}
+      <div class="p-name">${f.filename.replace(/^\d+_/,'')}</div>
+    </div>`).join('');
+}
+
+function togglePicker(chId) {
+  const el = document.getElementById('mediaPicker_' + chId);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function getChannel(id) { return scheduleData.channels.find(c => c.id === id); }
+
+function addMediaToChannel(chId, filename, type) {
+  const ch = getChannel(chId);
+  if (!ch) return;
+  ch.items.push({ id: `item_${crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)}`, filename, type, duration: type === 'video' ? null : 10 });
+  renderScheduleEditor(ch);
+}
+
+function addCctvItem(chId) {
+  const cameraName = prompt('카메라 이름 입력 (cameras.json에 등록된 이름)');
+  if (!cameraName) return;
+  const ch = getChannel(chId);
+  if (!ch) return;
+  ch.items.push({ id: `item_${Date.now().toString(36)}`, type: 'cctv', filename: null, cameraName, duration: 30 });
+  renderScheduleEditor(ch);
+}
+
+function removeItem(chId, itemId) {
+  const ch = getChannel(chId);
+  if (!ch) return;
+  ch.items = ch.items.filter(i => i.id !== itemId);
+  renderScheduleEditor(ch);
+}
+
+function moveItem(chId, itemId, dir) {
+  const ch = getChannel(chId);
+  if (!ch) return;
+  const idx = ch.items.findIndex(i => i.id === itemId);
+  if (idx === -1) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= ch.items.length) return;
+  [ch.items[idx], ch.items[newIdx]] = [ch.items[newIdx], ch.items[idx]];
+  renderScheduleEditor(ch);
+}
+
+function updateItemDuration(chId, itemId, val) {
+  const ch = getChannel(chId);
+  if (!ch) return;
+  const item = ch.items.find(i => i.id === itemId);
+  if (item) item.duration = parseInt(val) || 10;
+}
+
+async function saveSchedule(chId) {
+  const ch = getChannel(chId);
+  if (!ch) return;
+  try {
+    const r = await api('PUT', `/api/schedules/${chId}`, { name: ch.name, items: ch.items });
+    toast(`저장 완료 (${r.pushed}개 플레이어 즉시 적용)`);
+    await loadSchedules();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function pushSchedule(chId) {
+  try {
+    const r = await api('POST', `/api/schedules/${chId}/push`);
+    toast(`${r.sent}개 플레이어에 푸시 완료`, 'info');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function addChannel() {
+  const name = prompt('새 채널 이름');
+  if (!name) return;
+  try {
+    await api('POST', '/api/schedules', { name });
+    toast('채널 추가 완료'); await loadSchedules();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function renameChannel(chId) {
+  const ch = getChannel(chId);
+  const name = prompt('새 이름', ch ? ch.name : '');
+  if (!name) return;
+  if (ch) ch.name = name;
+  try {
+    await api('PUT', `/api/schedules/${chId}`, { name, items: ch ? ch.items : [] });
+    toast('채널명 변경 완료'); await loadSchedules();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteChannel(chId) {
+  if (!confirm('채널을 삭제하시겠습니까?')) return;
+  try {
+    await api('DELETE', `/api/schedules/${chId}`);
+    selectedChannelId = null; toast('채널 삭제 완료'); await loadSchedules();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════
+// 탭3: CCTV
+// ════════════════════════════════════════
+let splitMode = 1;
+let pngBase64 = null;
+let camData = { cameras: [] };
+
+function setSplit(n, btn) {
+  splitMode = n;
+  document.querySelectorAll('.split-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCameraCards();
+}
+
+function renderCameraCards() {
+  const grid = document.getElementById('cameraCards');
+  const labels = splitMode === 1 ? ['카메라 1'] : splitMode === 2 ? ['카메라 1','카메라 2'] : ['카메라 1','카메라 2','카메라 3','카메라 4'];
+  grid.style.gridTemplateColumns = splitMode === 1 ? '1fr' : 'repeat(2,1fr)';
+  grid.innerHTML = labels.map((l, i) => `
+    <div class="camera-card">
+      <div class="camera-card-title">
+        <span>${l}</span>
+        <button class="btn btn-ghost btn-sm" onclick="loadFromList(${i})">목록에서 선택</button>
+      </div>
+      <div class="form-group" style="margin-bottom:10px;"><label>카메라 이름</label><input id="cam_name_${i}" type="text" placeholder="로비 (한글 가능)"/></div>
+      <div class="form-group" style="margin-bottom:10px;"><label>IP 주소</label><input id="cam_ip_${i}" type="text" placeholder="192.168.0.100"/></div>
+      <div class="row" style="gap:8px;">
+        <div class="form-group" style="flex:1;"><label>아이디</label><input id="cam_id_${i}" type="text" placeholder="admin"/></div>
+        <div class="form-group" style="flex:1;"><label>비밀번호</label><input id="cam_pw_${i}" type="password" placeholder=""/></div>
+      </div>
+    </div>`).join('');
+}
+
+function loadFromList(cardIdx) {
+  if (!camData.cameras || !camData.cameras.length) { toast('등록된 카메라가 없습니다', 'error'); return; }
+  const names = camData.cameras.map(c => c.name).join('\n');
+  const chosen = prompt(`불러올 카메라 이름:\n${names}`);
+  const cam = camData.cameras.find(c => c.name === chosen);
+  if (!cam) return;
+  document.getElementById(`cam_name_${cardIdx}`).value = cam.name;
+  document.getElementById(`cam_ip_${cardIdx}`).value   = cam.host;
+  document.getElementById(`cam_id_${cardIdx}`).value   = cam.user || '';
+  document.getElementById(`cam_pw_${cardIdx}`).value   = cam.pass || '';
+}
+
+function handlePng(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    pngBase64 = e.target.result.split(',')[1];
+    document.getElementById('pngPreview').style.display = 'block';
+    document.getElementById('pngPreviewImg').src = e.target.result;
+    document.getElementById('pngName').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePng() {
+  pngBase64 = null;
+  document.getElementById('pngPreview').style.display = 'none';
+  document.getElementById('pngPreviewImg').src = '';
+  document.getElementById('pngName').textContent = '';
+  document.getElementById('pngInput').value = '';
+}
+
+async function generateZip() {
+  const count = splitMode;
+  const cameras = [];
+  for (let i = 0; i < count; i++) {
+    const name = (document.getElementById(`cam_name_${i}`)?.value||'').replace(/\s+/g,'_').trim();
+    const host = document.getElementById(`cam_ip_${i}`)?.value?.trim();
+    const user = document.getElementById(`cam_id_${i}`)?.value?.trim() || 'admin';
+    const pass = document.getElementById(`cam_pw_${i}`)?.value?.trim() || '';
+    if (!name||!host) { toast(`카메라 ${i+1} 정보를 입력해주세요`, 'error'); return; }
+    cameras.push({ name, host, user, pass });
+  }
+  try {
+    const r = await fetch('/api/generate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ cameras, splitMode, images: pngBase64 ? { overlay: pngBase64 } : {} })
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>{}); throw new Error(e?.error || '생성 실패'); }
+    const blob = await r.blob();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `cctv_${Date.now()}.zip`; a.click(); URL.revokeObjectURL(a.href);
+    toast('ZIP 생성 완료'); loadCameras();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function loadCameras() {
+  try {
+    camData = await api('GET', '/api/cameras');
+    renderCamTable();
+    document.getElementById('camCount').textContent = `(${camData.cameras.length}개)`;
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function renderCamTable() {
+  const tbody = document.getElementById('camTbody');
+  if (!camData.cameras.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">등록된 카메라가 없습니다</td></tr>'; return; }
+  tbody.innerHTML = camData.cameras.map(c => `
+    <tr>
+      <td class="cam-name">${c.name}</td>
+      <td>${c.host}</td>
+      <td>${c.user||'admin'}</td>
+      <td class="cam-pass" id="pw_${c.name}">••••••</td>
+      <td><span class="tag tag-online">활성</span></td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn-action edit" onclick="togglePw('${c.name}','${c.pass||''}')">비밀번호</button>
+          <button class="btn-action restart" onclick="restartStream('${c.name}')">재시작</button>
+          <button class="btn-action del" onclick="deleteCamera('${c.name}')">삭제</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function togglePw(name, pw) {
+  const el = document.getElementById('pw_' + name);
+  if (!el) return;
+  if (el.textContent === '••••••') el.textContent = pw || '(없음)';
+  else el.textContent = '••••••';
+}
+
+async function restartStream(name) {
+  try { await api('POST', `/api/streams/${encodeURIComponent(name)}/restart`); toast(`${name} 재시작`); }
+  catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteCamera(name) {
+  if (!confirm(`"${name}" 카메라를 삭제하시겠습니까?`)) return;
+  try { await api('DELETE', `/api/cameras/${encodeURIComponent(name)}`); toast('삭제 완료'); loadCameras(); }
+  catch(e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════
+// 탭4: 디스플레이
+// ════════════════════════════════════════
+async function loadChannelsForSelect() {
+  try {
+    const d = await api('GET', '/api/schedules');
+    const sel = document.getElementById('dChannel');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">-- 미지정 --</option>' +
+      d.channels.map(c => `<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
+  } catch {}
+}
+
+async function addDisplay() {
+  const name = document.getElementById('dName').value.trim();
+  const ip   = document.getElementById('dIp').value.trim();
+  const loc  = document.getElementById('dLocation').value.trim();
+  const chId = document.getElementById('dChannel').value;
+  if (!name || !ip) { toast('이름과 IP를 입력하세요', 'error'); return; }
+  try {
+    await api('POST', '/api/displays', { name, ip, location: loc, channelId: chId || null });
+    toast('디스플레이 등록 완료'); loadDisplays();
+    document.getElementById('dName').value = '';
+    document.getElementById('dIp').value = '';
+    document.getElementById('dLocation').value = '';
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function loadDisplays() {
+  try {
+    const d = await api('GET', '/api/displays');
+    const schd = await api('GET', '/api/schedules');
+    const chMap = Object.fromEntries(schd.channels.map(c => [c.id, c.name]));
+    document.getElementById('dispCount').textContent = `(${d.displays.length}개)`;
+    const tbody = document.getElementById('dispTbody');
+    if (!d.displays.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">등록된 디스플레이가 없습니다</td></tr>'; return; }
+    tbody.innerHTML = d.displays.map(x => `
+      <tr>
+        <td style="font-weight:700;">${x.name}</td>
+        <td style="font-family:monospace;font-size:13px;">${x.ip}</td>
+        <td>${x.location||'—'}</td>
+        <td>${x.channelId ? (chMap[x.channelId]||x.channelId) : '—'}</td>
+        <td>
+          <div class="ctrl-btns">
+            <button class="btn btn-ghost btn-sm" onclick="mdcCtrl('${x.id}','power_on')">전원 ON</button>
+            <button class="btn btn-ghost btn-sm" onclick="mdcCtrl('${x.id}','power_off')">전원 OFF</button>
+            <button class="btn btn-ghost btn-sm" onclick="mdcInputPrompt('${x.id}')">입력</button>
+            <button class="btn btn-ghost btn-sm" onclick="mdcVolPrompt('${x.id}')">볼륨</button>
+          </div>
+        </td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteDisplay('${x.id}')">삭제</button></td>
+      </tr>`).join('');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function mdcCtrl(displayId, action, value) {
+  try {
+    await api('POST', `/api/displays/${displayId}/control`, { action, value });
+    toast(`${action} 전송 완료`, 'info');
+  } catch(e) { toast(`MDC 오류: ${e.message}`, 'error'); }
+}
+
+function mdcInputPrompt(displayId) {
+  const v = prompt('입력 선택 (hdmi1 / hdmi2 / dp / dvi)');
+  if (v) mdcCtrl(displayId, 'input', v);
+}
+function mdcVolPrompt(displayId) {
+  const v = prompt('볼륨 (0~100)');
+  if (v !== null) mdcCtrl(displayId, 'volume', v);
+}
+
+async function deleteDisplay(id) {
+  if (!confirm('디스플레이를 삭제하시겠습니까?')) return;
+  try { await api('DELETE', `/api/displays/${id}`); toast('삭제 완료'); loadDisplays(); }
+  catch(e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════
+// 탭5: 로그
+// ════════════════════════════════════════
+let logData = [];
+let logFilter = 'all';
+let logPage   = 0;
+const LOG_PER_PAGE = 50;
+
+async function loadLogs() {
+  try {
+    logData = await api('GET', `/api/logs?limit=500&category=${logFilter}`);
+    logPage = 0; renderLogs();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function setLogFilter(cat, btn) {
+  logFilter = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadLogs();
+}
+
+function renderLogs() {
+  const search = (document.getElementById('logSearch').value || '').toLowerCase();
+  const filtered = search ? logData.filter(l => JSON.stringify(l).toLowerCase().includes(search)) : logData;
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total / LOG_PER_PAGE));
+  logPage = Math.max(0, Math.min(logPage, pages - 1));
+  const page = filtered.slice(logPage * LOG_PER_PAGE, (logPage + 1) * LOG_PER_PAGE);
+
+  document.getElementById('logPageInfo').textContent = `${logPage+1} / ${pages} (${total}건)`;
+  document.getElementById('prevLogBtn').disabled = logPage === 0;
+  document.getElementById('nextLogBtn').disabled = logPage >= pages - 1;
+
+  const catClass = { stream:'cat-stream', control:'cat-control', schedule:'cat-schedule', system:'cat-system' };
+  const catLabel = { stream:'스트림', control:'제어', schedule:'스케줄', system:'시스템' };
+
+  document.getElementById('logList').innerHTML = page.map(l => {
+    const { ts, category, event, ...rest } = l;
+    const detail = Object.entries(rest).map(([k,v]) => `${k}=${JSON.stringify(v)}`).join(' · ');
+    return `<div class="log-entry">
+      <span class="ts">${fmtDate(ts)}</span>
+      <span class="${catClass[category]||'cat-system'}">[${catLabel[category]||category}]</span>
+      <span class="ev">${event}</span>
+      ${detail ? `<div class="detail">${detail}</div>` : ''}
+    </div>`;
+  }).join('') || '<div style="padding:20px;text-align:center;color:var(--muted);">로그 없음</div>';
+}
+
+// ════════════════════════════════════════
+// 초기화
+// ════════════════════════════════════════
+loadMedia();
+loadServerInfo();
+renderCameraCards();
+setInterval(loadServerInfo, 15000);
+</script>
+</body>
+</html>
