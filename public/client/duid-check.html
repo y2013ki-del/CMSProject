@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DUID Check</title>
+  <script src="$WEBAPIS/webapis/webapis.js"></script>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f1115;
+      color: #f8f9fa;
+      font-family: Arial, sans-serif;
+    }
+    .card {
+      width: min(900px, 92vw);
+      background: #1b1f27;
+      border: 1px solid #2c3240;
+      border-radius: 12px;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    h1 { margin: 0 0 10px; font-size: 28px; }
+    .desc { margin: 0 0 18px; color: #c2c8d3; }
+    .row { margin-bottom: 10px; }
+    .label { color: #9da5b4; margin-right: 8px; }
+    .val {
+      display: inline-block;
+      background: #0f1115;
+      border: 1px solid #2c3240;
+      border-radius: 8px;
+      padding: 6px 10px;
+      word-break: break-all;
+      max-width: 100%;
+    }
+    .ok { color: #54d18f; }
+    .warn { color: #ffd166; }
+    .err { color: #ff6b6b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>DUID 확인</h1>
+    <p class="desc">TV에서 이 페이지를 열어 실제 DUID를 확인하세요.</p>
+    <div class="row"><span class="label">상태:</span><span id="status" class="val">확인 중...</span></div>
+    <div class="row"><span class="label">webapis.productinfo.getDUID():</span><span id="duid" class="val">-</span></div>
+    <div class="row"><span class="label">tizenid fallback:</span><span id="tizenid" class="val">-</span></div>
+    <div class="row"><span class="label">오류:</span><span id="error" class="val">-</span></div>
+  </div>
+
+  <script>
+    (function () {
+      var statusEl = document.getElementById('status');
+      var duidEl = document.getElementById('duid');
+      var tizenidEl = document.getElementById('tizenid');
+      var errorEl = document.getElementById('error');
+
+      function setStatus(text, cls) {
+        statusEl.textContent = text;
+        statusEl.className = 'val ' + (cls || '');
+      }
+
+      var duid = null;
+      var tizenid = null;
+      var errors = [];
+
+      try {
+        if (window.webapis && webapis.productinfo && typeof webapis.productinfo.getDUID === 'function') {
+          duid = webapis.productinfo.getDUID();
+        } else {
+          errors.push('webapis.productinfo.getDUID() 사용 불가');
+        }
+      } catch (e) {
+        errors.push('getDUID 오류: ' + (e && e.message ? e.message : e));
+      }
+
+      try {
+        if (window.tizen && tizen.systeminfo && typeof tizen.systeminfo.getCapability === 'function') {
+          tizenid = tizen.systeminfo.getCapability('http://tizen.org/system/tizenid');
+        } else {
+          errors.push('tizen.systeminfo.getCapability() 사용 불가');
+        }
+      } catch (e) {
+        errors.push('tizenid 오류: ' + (e && e.message ? e.message : e));
+      }
+
+      duidEl.textContent = duid || '-';
+      tizenidEl.textContent = tizenid || '-';
+      errorEl.textContent = errors.length ? errors.join(' | ') : '-';
+
+      if (duid) {
+        setStatus('성공 (실제 DUID 확인)', 'ok');
+      } else if (tizenid) {
+        setStatus('주의 (DUID 대신 tizenid만 확인)', 'warn');
+      } else {
+        setStatus('실패 (TV 앱 컨텍스트에서 다시 확인 필요)', 'err');
+      }
+    })();
+  </script>
+</body>
+</html>
+

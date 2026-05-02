@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="http://cms.local/player"
+        version="1.1.0">
+
+  <tizen:application id="y2013ki000.CMSPlayer"
+                     package="y2013ki000"
+                     required_version="2.3"/>
+
+  <content src="index.html"/>
+
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:privilege name="http://tizen.org/privilege/display"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+
+  <tizen:setting screen-orientation="landscape"
+                 context-menu="disable"
+                 background-support="enable"
+                 encryption="disable"
+                 install-location="auto"
+                 hwkey-event="true"/>
+
+  <name>CMS Player</name>
+  <icon src="icon.png"/>
+  <tizen:metadata key="http://samsung.com/tv/metadata/use.network" value="true"/>
+</widget>

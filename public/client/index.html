@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMS Centralized Player</title>
+    <script src="$WEBAPIS/webapis/webapis.js"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body, html { width:100%; height:100%; background:#000; overflow:hidden; }
+        #player-container { width:100%; height:100%; position:relative; }
+        video, img, iframe { width:100%; height:100%; display:block; object-fit:fill; position:absolute; top:0; left:0; border:0; }
+        #ready-msg { color: #555; font-size: 24px; position: absolute; top: 50%; left: 50%; 
+                     transform: translate(-50%, -50%); z-index: 100; font-family: sans-serif; }
+        /* 전환 효과용 */
+        .fade-in { animation: fadeIn 0.5s forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="player-container">
+        <div id="ready-msg">CMS Player Ready</div>
+        <video id="v1" playsinline style="display:none; z-index:2;"></video>
+        <video id="v2" playsinline style="display:none; z-index:1;"></video>
+        <img id="i1" style="display:none; z-index:2;">
+        <img id="i2" style="display:none; z-index:1;">
+        <iframe id="webFrame" style="display:none; z-index:3;" referrerpolicy="no-referrer"></iframe>
+    </div>
+
+    <script>
+        function updateDuidDebug(lines) {
+            return;
+        }
+
+        function getPersistentDUID() {
+            const debug = [];
+            try {
+                if (window.webapis && webapis.productinfo) {
+                    const productInfoDuid = webapis.productinfo.getDUID();
+                    debug.push(`source: webapis.productinfo.getDUID()`);
+                    debug.push(`value: ${productInfoDuid}`);
+                    updateDuidDebug(debug);
+                    return productInfoDuid;
+                }
+                debug.push('source: webapis.productinfo unavailable');
+            } catch (e) {
+                debug.push(`webapis.productinfo.getDUID() failed: ${e && e.message ? e.message : e}`);
+            }
+            try {
+                if (window.tizen && tizen.systeminfo) {
+                    const tizenId = tizen.systeminfo.getCapability("http://tizen.org/system/tizenid");
+                    debug.push('source: tizen.systeminfo capability');
+                    debug.push(`value: ${tizenId}`);
+                    updateDuidDebug(debug);
+                    return tizenId;
+                }
+                debug.push('source: tizen.systeminfo unavailable');
+            } catch (e) {
+                debug.push(`tizen.systeminfo failed: ${e && e.message ? e.message : e}`);
+            }
+            let savedId = localStorage.getItem('cms_duid');
+            if (savedId) {
+                debug.push('source: localStorage fallback');
+                debug.push(`value: ${savedId}`);
+                updateDuidDebug(debug);
+                return savedId;
+            }
+            let newId = 'TV_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            localStorage.setItem('cms_duid', newId);
+            debug.push('source: generated fallback');
+            debug.push(`value: ${newId}`);
+            updateDuidDebug(debug);
+            return newId;
+        }
+
+        const queryDuid = new URLSearchParams(window.location.search).get('duid');
+        const duid = queryDuid || getPersistentDUID();
+        if (queryDuid) {
+            updateDuidDebug([
+                'source: querystring',
+                `value: ${queryDuid}`
+            ]);
+        }
+        const serverHost = window.location.host;
+        let ws;
+        let currentItems = [];
+        let currentIndex = 0;
+        let timer = null;
+        let runtimeMode = 'schedule'; // schedule | streaming
+        let activeStreamUrl = '';
+        let activePlaybackProfile = 'balanced';
+        let syncPlayTargetEpochMs = null;
+        let syncWaitRafId = null;
+        let avplayPrepareTimer = null;
+        let avplayPreparedAtMs = null;
+        let avplayLastPlaytimeMs = null;
+        let streamHealthTimer = null;
+        let heartbeatTimer = null;
+        const HEARTBEAT_BASE_MS = 10000;
+        const HEARTBEAT_JITTER_MS = 2000;
+        const playerStatus = {
+            playback: 'idle',
+            currentType: null,
+            currentFilename: null,
+            channelId: null,
+            channelName: null,
+            lastError: null
+        };
+
+        function setStatusOverlayText(_) {
+            // 운영 화면 오버레이를 숨기기 위해 no-op 유지
+        }
+
+        function nextHeartbeatDelayMs() {
+            const jitter = (Math.random() * 2 - 1) * HEARTBEAT_JITTER_MS;
+            return Math.max(3000, Math.round(HEARTBEAT_BASE_MS + jitter));
+        }
+
+        function sendHeartbeat(force) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            const payload = {
+                type: 'heartbeat',
+                ts: Date.now(),
+                force: !!force,
+                player: {
+                    mode: runtimeMode,
+                    playback: playerStatus.playback,
+                    currentType: playerStatus.currentType,
+                    currentFilename: playerStatus.currentFilename,
+                    streamUrl: activeStreamUrl || null,
+                    playbackProfile: activePlaybackProfile || 'balanced',
+                    syncTargetEpochMs: syncPlayTargetEpochMs,
+                    channelId: playerStatus.channelId,
+                    channelName: playerStatus.channelName,
+                    itemIndex: currentItems.length ? (Math.max(0, currentIndex - 1) % currentItems.length) : null,
+                    queueSize: currentItems.length,
+                    lastError: playerStatus.lastError
+                }
+            };
+            ws.send(JSON.stringify(payload));
+        }
+
+        function scheduleHeartbeat() {
+            clearTimeout(heartbeatTimer);
+            heartbeatTimer = setTimeout(() => {
+                sendHeartbeat(false);
+                scheduleHeartbeat();
+            }, nextHeartbeatDelayMs());
+        }
+
+        function setPlaybackState(playback, extra = {}, forceHeartbeat = false) {
+            playerStatus.playback = playback;
+            if (extra.currentType !== undefined) playerStatus.currentType = extra.currentType;
+            if (extra.currentFilename !== undefined) playerStatus.currentFilename = extra.currentFilename;
+            if (extra.channelId !== undefined) playerStatus.channelId = extra.channelId;
+            if (extra.channelName !== undefined) playerStatus.channelName = extra.channelName;
+            if (extra.lastError !== undefined) playerStatus.lastError = extra.lastError;
+            if (forceHeartbeat) sendHeartbeat(true);
+        }
+
+        function connectWS() {
+            ws = new WebSocket(`${window.location.protocol==='https:'?'wss:':'ws:'}//${serverHost}/ws/player?duid=${duid}`);
+            ws.onopen = () => {
+                setStatusOverlayText(`Online: ${duid}`);
+                sendHeartbeat(true);
+                scheduleHeartbeat();
+            };
+            ws.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.type === 'update') {
+                    console.log("Schedule Update", data.items);
+                    if (runtimeMode !== 'schedule') return;
+                    // [보강] 기존 비디오 강제 중지 및 타이머 제거
+                    const v1 = document.getElementById('v1');
+                    if (v1) { v1.pause(); v1.src = ""; }
+                    clearTimeout(timer);
+                    
+                    currentItems = data.items || [];
+                    currentIndex = 0;
+                    setPlaybackState('ready', {
+                        channelId: data.channel || null,
+                        channelName: data.name || null,
+                        currentType: null,
+                        currentFilename: null,
+                        lastError: null
+                    }, true);
+                    if (document.getElementById('ready-msg')) document.getElementById('ready-msg').remove();
+                    playNext();
+                } else if (data.type === 'mode') {
+                    if (data.mode === 'schedule') {
+                        switchToScheduleMode();
+                    } else if (data.mode === 'streaming') {
+                        switchToStreamingMode(data.url || '', data.playbackProfile || 'balanced', data.targetEpochMs || null);
+                    }
+                } else if (data.type === 'reload') {
+                    location.reload();
+                }
+            };
+            ws.onclose = () => {
+                setStatusOverlayText('Offline (Retrying...)');
+                clearTimeout(heartbeatTimer);
+                setTimeout(connectWS, 5000);
+            };
+        }
+
+        function stopSchedulePlayback() {
+            clearTimeout(timer);
+            const v1 = document.getElementById('v1');
+            const i1 = document.getElementById('i1');
+            const webFrame = document.getElementById('webFrame');
+            if (v1) {
+                try { v1.pause(); } catch (_) {}
+                v1.src = '';
+                v1.style.display = 'none';
+            }
+            if (i1) {
+                i1.src = '';
+                i1.style.display = 'none';
+            }
+            if (webFrame) {
+                webFrame.src = 'about:blank';
+                webFrame.style.display = 'none';
+            }
+        }
+
+        function stopAvplay() {
+            if (!(window.webapis && webapis.avplay)) return;
+            try { webapis.avplay.stop(); } catch (_) {}
+            try { webapis.avplay.close(); } catch (_) {}
+        }
+
+        function clearStreamTimers() {
+            clearTimeout(avplayPrepareTimer);
+            avplayPrepareTimer = null;
+            avplayPreparedAtMs = null;
+            avplayLastPlaytimeMs = null;
+            if (streamHealthTimer) clearInterval(streamHealthTimer);
+            streamHealthTimer = null;
+        }
+
+        function clearSyncWaitLoop() {
+            if (syncWaitRafId !== null && typeof cancelAnimationFrame === 'function') {
+                cancelAnimationFrame(syncWaitRafId);
+            }
+            syncWaitRafId = null;
+        }
+
+        function playWhenTargetTime() {
+            const target = Number(syncPlayTargetEpochMs);
+            if (!Number.isFinite(target) || target <= Date.now()) {
+                try { webapis.avplay.play(); } catch (_) {}
+                avplayLastPlaytimeMs = Date.now();
+                setPlaybackState('playing', { currentType: 'streaming', currentFilename: null, lastError: null }, true);
+                return;
+            }
+            setPlaybackState('armed', { currentType: 'streaming', currentFilename: null, lastError: null }, true);
+            const tick = () => {
+                if (runtimeMode !== 'streaming') return;
+                if (Date.now() >= target) {
+                    try { webapis.avplay.play(); } catch (_) {}
+                    avplayLastPlaytimeMs = Date.now();
+                    setPlaybackState('playing', { currentType: 'streaming', currentFilename: null, lastError: null }, true);
+                    syncWaitRafId = null;
+                    return;
+                }
+                syncWaitRafId = requestAnimationFrame(tick);
+            };
+            syncWaitRafId = requestAnimationFrame(tick);
+        }
+
+        function getAvplayPreset(profile) {
+            const p = String(profile || 'balanced');
+            if (p === 'stable') return { playSec: 8, resumeSec: 12, timeoutSec: 8 };
+            if (p === 'low_latency') return { playSec: 4, resumeSec: 5, timeoutSec: 4 };
+            return { playSec: 6, resumeSec: 8, timeoutSec: 6 };
+        }
+
+        function attachAvplayListener() {
+            if (!(window.webapis && webapis.avplay)) return;
+            if (typeof webapis.avplay.setListener !== 'function') return;
+            webapis.avplay.setListener({
+                onbufferingstart: function () {
+                    setPlaybackState('buffering', { currentType: 'streaming', currentFilename: null, lastError: null }, true);
+                },
+                onbufferingcomplete: function () {
+                    setPlaybackState('playing', { currentType: 'streaming', currentFilename: null, lastError: null }, true);
+                },
+                oncurrentplaytime: function () {
+                    avplayLastPlaytimeMs = Date.now();
+                },
+                onerror: function () {
+                    setPlaybackState('error', { currentType: 'streaming', currentFilename: null, lastError: 'avplay_runtime_error' }, true);
+                },
+                onerrormsg: function () {
+                    setPlaybackState('error', { currentType: 'streaming', currentFilename: null, lastError: 'avplay_runtime_error_msg' }, true);
+                }
+            });
+        }
+
+        function applyAvplayProfile(profile) {
+            if (!(window.webapis && webapis.avplay)) return;
+            const preset = getAvplayPreset(profile);
+            if (typeof webapis.avplay.setBufferingParam === 'function') {
+                try {
+                    webapis.avplay.setBufferingParam('PLAYER_BUFFER_FOR_PLAY', 'PLAYER_BUFFER_SIZE_IN_SECOND', preset.playSec);
+                    webapis.avplay.setBufferingParam('PLAYER_BUFFER_FOR_RESUME', 'PLAYER_BUFFER_SIZE_IN_SECOND', preset.resumeSec);
+                } catch (_) {}
+            }
+            if (typeof webapis.avplay.setTimeoutForBuffering === 'function') {
+                try {
+                    webapis.avplay.setTimeoutForBuffering(preset.timeoutSec);
+                } catch (_) {}
+            }
+        }
+
+        function startAvplay(url, profile) {
+            if (!(window.webapis && webapis.avplay)) return false;
+            try {
+                stopAvplay();
+                clearSyncWaitLoop();
+                clearStreamTimers();
+                webapis.avplay.open(url);
+                attachAvplayListener();
+                applyAvplayProfile(profile);
+                webapis.avplay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
+                webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_FULL_SCREEN');
+                avplayPrepareTimer = setTimeout(function () {
+                    if (runtimeMode !== 'streaming') return;
+                    setPlaybackState('error', { currentType: 'streaming', currentFilename: null, lastError: 'avplay_prepare_timeout' }, true);
+                }, 12000);
+                webapis.avplay.prepareAsync(
+                    function () {
+                        clearTimeout(avplayPrepareTimer);
+                        avplayPrepareTimer = null;
+                        avplayPreparedAtMs = Date.now();
+                        streamHealthTimer = setInterval(function () {
+                            if (runtimeMode !== 'streaming') return;
+                            const now = Date.now();
+                            if (avplayPreparedAtMs && !avplayLastPlaytimeMs && now - avplayPreparedAtMs > 10000) {
+                                setPlaybackState('error', { currentType: 'streaming', currentFilename: null, lastError: 'avplay_no_playtime' }, true);
+                            }
+                        }, 2000);
+                        playWhenTargetTime();
+                    },
+                    function (err) {
+                        clearTimeout(avplayPrepareTimer);
+                        avplayPrepareTimer = null;
+                        setPlaybackState('error', { currentType: 'streaming', currentFilename: null, lastError: 'avplay_prepare_error' }, true);
+                        console.error('AVPlay prepareAsync failed', err);
+                    }
+                );
+                return true;
+            } catch (err) {
+                console.error('AVPlay start error', err);
+                return false;
+            }
+        }
+
+        function switchToScheduleMode() {
+            runtimeMode = 'schedule';
+            activeStreamUrl = '';
+            activePlaybackProfile = 'balanced';
+            syncPlayTargetEpochMs = null;
+            clearSyncWaitLoop();
+            clearStreamTimers();
+            stopAvplay();
+            stopSchedulePlayback();
+            setPlaybackState('ready', { currentType: null, currentFilename: null, lastError: null }, true);
+            playNext();
+        }
+
+        function switchToStreamingMode(url, profile, targetEpochMs) {
+            const streamUrl = String(url || '').trim();
+            if (!streamUrl) {
+                setPlaybackState('error', { currentType: 'streaming', currentFilename: null, lastError: 'stream_url_missing' }, true);
+                return;
+            }
+            runtimeMode = 'streaming';
+            activeStreamUrl = streamUrl;
+            activePlaybackProfile = ['stable', 'balanced', 'low_latency'].includes(String(profile || '').trim())
+              ? String(profile).trim()
+              : 'balanced';
+            syncPlayTargetEpochMs = Number.isFinite(Number(targetEpochMs)) ? Number(targetEpochMs) : null;
+            clearStreamTimers();
+            stopSchedulePlayback();
+            const avplayOk = startAvplay(streamUrl, activePlaybackProfile);
+            const webFrame = document.getElementById('webFrame');
+            if (!avplayOk && webFrame) {
+                webFrame.style.display = 'block';
+                webFrame.src = streamUrl;
+            }
+            if (!avplayOk) {
+                setPlaybackState('playing', { currentType: 'streaming', currentFilename: null, lastError: 'avplay_unavailable' }, true);
+            }
+        }
+
+        // 특정 아이템이 현재 재생 가능한 기간인지 확인
+        function isAvailable(item) {
+            if (!item.startAt && !item.endAt) return true;
+            const now = Date.now();
+            if (item.startAt && new Date(item.startAt).getTime() > now) return false;
+            if (item.endAt && new Date(item.endAt).getTime() < now) return false;
+            return true;
+        }
+
+        function playNext() {
+            clearTimeout(timer);
+            if (runtimeMode !== 'schedule') return;
+            if (currentItems.length === 0) return;
+
+            // 기간 확인 후 넘기기 (최대 한 바퀴만 검사)
+            let attempts = 0;
+            while (!isAvailable(currentItems[currentIndex % currentItems.length]) && attempts < currentItems.length) {
+                currentIndex++;
+                attempts++;
+            }
+
+            if (attempts === currentItems.length) {
+                console.warn("No available items for current time");
+                document.body.style.background = "#000";
+                setPlaybackState('waiting_window', { currentType: null, currentFilename: null });
+                timer = setTimeout(playNext, 10000); // 10초 후 재시도
+                return;
+            }
+
+            const item = currentItems[currentIndex % currentItems.length];
+            currentIndex++;
+
+            const v1 = document.getElementById('v1');
+            const i1 = document.getElementById('i1');
+            const webFrame = document.getElementById('webFrame');
+            const mediaUrl = `${window.location.protocol}//${serverHost}/media/${item.filename}`;
+
+            if (item.type === 'web') {
+                v1.pause();
+                v1.style.display = 'none';
+                i1.style.display = 'none';
+                webFrame.style.display = 'block';
+                webFrame.src = item.webUrl || '';
+                setPlaybackState('playing', { currentType: 'web', currentFilename: item.label || item.filename || null, lastError: null }, true);
+                timer = setTimeout(playNext, ((item.duration || 15) * 1000));
+                preloadNext();
+                return;
+            }
+
+            webFrame.style.display = 'none';
+            webFrame.src = 'about:blank';
+
+            if (item.type === 'video') {
+                i1.style.display = 'none';
+                v1.style.display = 'block';
+                v1.muted = false;
+                v1.volume = 1;
+                v1.src = mediaUrl;
+                v1.onended = playNext;
+                v1.onerror = () => {
+                    console.error("Video Load Error");
+                    setPlaybackState('error', {
+                        currentType: 'video',
+                        currentFilename: item.filename || null,
+                        lastError: 'video_load_error'
+                    }, true);
+                    playNext();
+                };
+                v1.play().catch(playNext);
+                setPlaybackState('playing', { currentType: 'video', currentFilename: item.filename || null, lastError: null }, true);
+                
+                // [개선] 만약 수동 시간이 설정되어 있다면 (useNativeDuration이 아닐 때)
+                if (!item.useNative && item.duration > 0) {
+                    timer = setTimeout(playNext, item.duration * 1000);
+                }
+            } else {
+                v1.style.display = 'none';
+                i1.style.display = 'block';
+                i1.src = mediaUrl;
+                i1.onerror = () => {
+                    setPlaybackState('error', {
+                        currentType: 'image',
+                        currentFilename: item.filename || null,
+                        lastError: 'image_load_error'
+                    }, true);
+                    playNext();
+                };
+                setPlaybackState('playing', { currentType: 'image', currentFilename: item.filename || null, lastError: null }, true);
+                timer = setTimeout(playNext, (item.duration || 10) * 1000);
+            }
+
+            // [핵심] 다음 아이템 프리로딩 로직
+            preloadNext();
+        }
+
+        function preloadNext() {
+            if (runtimeMode !== 'schedule') return;
+            const nextIdx = currentIndex % currentItems.length;
+            const nextItem = currentItems[nextIdx];
+            if (!nextItem || !isAvailable(nextItem)) return;
+
+            if (nextItem.type === 'web') return;
+
+            const nextUrl = `${window.location.protocol}//${serverHost}/media/${nextItem.filename}`;
+            if (nextItem.type === 'video') {
+                const v2 = document.getElementById('v2');
+                v2.src = nextUrl;
+                v2.load(); // 미리 로드 시작
+            } else {
+                const img = new Image();
+                img.src = nextUrl;
+            }
+        }
+
+        connectWS();
+    </script>
+</body>
+</html>

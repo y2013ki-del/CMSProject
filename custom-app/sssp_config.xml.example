@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget>
+  <ver>0.1.0</ver>
+  <size>000000</size>
+  <widgetname>cmsplayer</widgetname>
+  <webtype>tizen</webtype>
+  <auto_launch>true</auto_launch>
+</widget>

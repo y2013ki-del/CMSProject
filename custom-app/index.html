@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Samsung CMS Player</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="appShell" class="shell">
+    <iframe id="playerFrame" class="frame" title="CMS Player"></iframe>
+    <div id="overlay" class="overlay">
+      <div class="panel">
+        <div class="eyebrow">Samsung Custom App Draft</div>
+        <h1>CMS 플레이어 연결 중</h1>
+        <p id="statusText">초기 연결을 시도하고 있습니다.</p>
+        <div class="actions">
+          <button id="retryButton" type="button">다시 시도</button>
+        </div>
+        <div class="hint">대상 주소: <code id="targetUrl"></code></div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
