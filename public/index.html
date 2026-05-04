@@ -93,6 +93,10 @@
     .cat-system { background: #7f8c8d; color: #fff; }
     .log-ev { color: #fff; font-weight: 600; margin-right: 10px; }
     .log-det { color: #aaa; font-size: 11px; }
+    .log-footer { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:12px; }
+    .log-page-info { font-size:12px; color:var(--muted); }
+    .log-pagination { display:flex; gap:8px; align-items:center; }
+    .log-download-wrap { display:flex; justify-content:flex-end; margin-top:12px; }
 
     .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
     .form-group { display: flex; flex-direction: column; gap: 4px; }
@@ -160,7 +164,7 @@
     .modal-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
     .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
     .modal-actions button { flex: 1; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; }
-    .ui-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 5000; display: none; align-items: center; justify-content: center; }
+    .ui-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 7000; display: none; align-items: center; justify-content: center; }
     .ui-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: min(520px, 92vw); padding: 18px; box-shadow: 0 14px 40px rgba(0,0,0,.2); }
     .ui-modal h4 { font-size: 16px; margin-bottom: 8px; }
     .ui-modal p { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
@@ -181,9 +185,11 @@
     .calendar-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; }
     .calendar-dow { font-size:11px; color:var(--muted); text-align:center; padding:6px 0; border-bottom:1px solid var(--border); }
     .calendar-cell { min-height:110px; border:1px solid var(--border); border-radius:8px; padding:6px; background: var(--surface2); }
+    .calendar-cell.clickable { cursor: pointer; }
     .calendar-cell.dim { opacity:.45; }
     .calendar-cell.today { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(201,162,39,.35) inset; }
     .calendar-date { font-size:11px; font-weight:700; margin-bottom:6px; }
+    .calendar-date.clickable { cursor: pointer; }
     .calendar-event { font-size:10px; padding:2px 5px; border-radius:6px; margin-bottom:3px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .calendar-event.clickable { cursor: pointer; }
     .calendar-event-list { display:grid; gap:6px; }
@@ -192,6 +198,7 @@
     .calendar-week-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:8px; }
     .calendar-week-col { border:1px solid var(--border); border-radius:8px; background: var(--surface2); min-height:280px; padding:6px; }
     .calendar-week-title { font-size:11px; color:var(--muted); margin-bottom:6px; text-align:center; }
+    .calendar-week-title.clickable { cursor: pointer; }
     .calendar-btn { width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer; }
     .calendar-detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 5300; display:none; align-items:center; justify-content:center; }
     .calendar-detail-modal { width:min(620px, 94vw); max-height:90vh; overflow:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; }
@@ -200,6 +207,7 @@
     .rule-color-popover .preset-row { display:flex; gap:4px; flex-wrap:wrap; margin-top:8px; }
     .upload-designer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 6000; display: none; align-items: center; justify-content: center; padding: 20px; }
     .upload-designer { width: min(1180px, 96vw); height: min(860px, 94vh); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; display: grid; grid-template-rows: auto auto 1fr auto; gap: 12px; padding: 14px; }
+    .upload-designer.portrait-mode { height: min(980px, 96vh); }
     .upload-designer-head { display:flex; justify-content:space-between; align-items:center; gap:10px; }
     .upload-designer-body { display:grid; grid-template-columns: 280px 1fr; gap: 12px; min-height: 0; }
     .upload-lib { border:1px solid var(--border); border-radius: 12px; padding: 10px; overflow:auto; }
@@ -208,21 +216,82 @@
     .upload-lib-item.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(143,123,78,.2); }
     .upload-lib-thumb { width:100%; height:90px; border-radius:8px; background:#101215; display:flex; align-items:center; justify-content:center; overflow:hidden; color:#9aa3b0; font-size:12px; }
     .upload-lib-thumb img, .upload-lib-thumb video { width:100%; height:100%; object-fit:cover; display:block; }
-    .upload-stage-wrap { border:1px solid var(--border); border-radius:12px; background: #0f1216; padding: 10px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-    .upload-stage { position: relative; background:#1a1f27; border:1px dashed #3b4350; border-radius:10px; overflow:hidden; }
-    .upload-slot { position:absolute; border:1px solid #728299; background: rgba(65,84,112,.2); min-width:70px; min-height:50px; cursor: move; }
+    .upload-stage-wrap { border:1px solid var(--border); border-radius:14px; background: radial-gradient(circle at 20% 20%, #202633, #0f1218); padding: 10px; display:flex; align-items:center; justify-content:center; overflow:auto; }
+    .upload-stage { position: relative; background:#1a1f27; border:1px dashed #566274; border-radius:12px; overflow:hidden; box-shadow: 0 10px 28px rgba(0,0,0,.28); }
+    .upload-slot { position:absolute; border:1px solid #728299; background: rgba(65,84,112,.18); min-width:70px; min-height:50px; cursor: move; border-radius: 8px; }
     .upload-slot.active { border:2px solid #9fb4cf; box-shadow: 0 0 0 2px rgba(120,150,190,.25) inset; }
-    .upload-slot-label { position:absolute; left:6px; top:4px; font-size:11px; color:#c6d4e6; background: rgba(10,10,10,.5); padding:1px 5px; border-radius: 10px; }
-    .upload-slot-preview { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#8d99aa; font-size:12px; overflow:hidden; }
+    .upload-slot-delete {
+      position: absolute;
+      right: 6px;
+      top: 6px;
+      width: 18px;
+      height: 18px;
+      border: 1px solid rgba(255,255,255,.45);
+      border-radius: 999px;
+      background: rgba(20,24,30,.82);
+      color: #fff;
+      font-size: 12px;
+      line-height: 16px;
+      text-align: center;
+      cursor: pointer;
+      display: none;
+      z-index: 3;
+    }
+    .upload-slot:hover .upload-slot-delete { display: block; }
+    .upload-slot-label { position:absolute; left:8px; top:6px; font-size:10px; color:#d8e4f2; background: rgba(10,10,10,.42); padding:2px 7px; border-radius: 999px; backdrop-filter: blur(2px); }
+    .upload-slot-preview { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#8d99aa; font-size:12px; overflow:hidden; background:#000; }
     .upload-slot-preview img, .upload-slot-preview video { width:100%; height:100%; object-fit:cover; display:block; }
+    .upload-slot-preview iframe { width:100%; height:100%; display:block; pointer-events:none; }
+    .slot-media-stack { position:relative; width:100%; height:100%; overflow:hidden; background:#000; }
+    .slot-media-main {
+      position:relative;
+      width:100%; height:100%;
+      object-position:center center;
+      z-index:1;
+      display:block;
+    }
     .upload-handle { position:absolute; width:10px; height:10px; right:-5px; bottom:-5px; background:#c5d2e3; border-radius:2px; cursor: nwse-resize; border:1px solid #233042; }
     .upload-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .upload-toolbar-break { flex-basis: 100%; height: 0; }
     .upload-summary { font-size:12px; color: var(--muted); }
     .designer-pillbar { display:flex; gap:6px; align-items:center; background: var(--surface2); border:1px solid var(--border); border-radius:999px; padding:4px; }
     .designer-pill { border:none; background:transparent; color:var(--muted); padding:6px 12px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; }
     .designer-pill.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
     .designer-web-add { display:flex; gap:6px; align-items:center; }
     .designer-web-add input { width: 260px; max-width: 36vw; }
+    .weather-search-row { display:flex; gap:8px; align-items:center; }
+    .weather-search-row input { flex:1; min-width:0; }
+    .weather-search-results {
+      margin-top: 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface2);
+      max-height: 180px;
+      overflow: auto;
+      padding: 4px;
+      display: grid;
+      gap: 4px;
+    }
+    .weather-search-item {
+      border: 1px solid transparent;
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--text);
+      font-size: 12px;
+    }
+    .weather-search-item:hover { border-color: var(--accent); }
+    .weather-search-item.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(143,123,78,.32) inset;
+    }
+    .weather-selected-hint {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
     [data-theme="dark"] {
       --bg: #121417;
       --surface: #1b1f25;
@@ -669,6 +738,16 @@
         <button class="btn-action" onclick="loadLogs()">새로고침</button>
       </div>
       <div id="logList" style="max-height:600px; overflow-y:auto; font-family:monospace; background:#1a1a1a; color:#eee; padding:15px; border-radius:8px;"></div>
+      <div class="log-footer">
+        <div id="logPageInfo" class="log-page-info"></div>
+        <div class="log-pagination">
+          <button class="btn-action" onclick="changeLogPage(-1)">이전</button>
+          <button class="btn-action" onclick="changeLogPage(1)">다음</button>
+        </div>
+      </div>
+      <div class="log-download-wrap">
+        <button class="btn btn-accent" onclick="openLogDownloadModal()">로그 다운로드</button>
+      </div>
     </div>
   </div>
 </div>
@@ -678,7 +757,7 @@
 <div id="uploadDesignerOverlay" class="upload-designer-overlay" onclick="closeUploadDesigner(event)">
   <div class="upload-designer" onclick="event.stopPropagation()">
     <div class="upload-designer-head">
-      <h3 style="font-size:17px;">콘텐츠 등록 디자이너</h3>
+      <h3 style="font-size:17px;">콘텐츠 등록</h3>
       <button class="btn-action" onclick="closeUploadDesigner()">닫기</button>
     </div>
     <div class="upload-toolbar">
@@ -691,29 +770,40 @@
         <button type="button" class="designer-pill" onclick="setDesignerSplit(2)">2분할</button>
         <button type="button" class="designer-pill" onclick="setDesignerSplit(3)">3분할</button>
         <button type="button" class="designer-pill" onclick="setDesignerSplit(4)">4분할</button>
+        <button type="button" class="designer-pill" onclick="addDesignerArea()">영역 추가</button>
       </div>
+      <div class="designer-pillbar" id="designerAspectBar" title="선택 영역 비율 고정">
+        <button type="button" class="designer-pill" onclick="setActiveSlotAspectRatio('16:9')">16:9</button>
+        <button type="button" class="designer-pill" onclick="setActiveSlotAspectRatio('4:3')">4:3</button>
+        <button type="button" class="designer-pill" onclick="setActiveSlotAspectRatio('9:16')">9:16</button>
+        <button type="button" class="designer-pill" onclick="setActiveSlotAspectRatio('3:4')">3:4</button>
+      </div>
+      <div class="upload-toolbar-break"></div>
       <button class="btn-action" onclick="pickDesignerFiles()">파일 선택</button>
-      <div class="designer-web-add">
-        <input id="designerWebUrl" type="url" placeholder="https://example.com">
-        <button class="btn-action" onclick="addDesignerWebSource()">웹 추가</button>
-      </div>
-      <button class="btn-action" onclick="assignSelectedFileToActiveSlot()">선택 파일 배치</button>
-      <button class="btn-action" onclick="resetDesignerLayout()">기본 배치 복원</button>
+      <button class="btn-action" onclick="addDesignerWebSource()">웹 콘텐츠 등록</button>
+      <button class="btn-action" onclick="addDesignerWeatherSource()">날씨 콘텐츠 추가</button>
       <input id="designerFileInput" type="file" multiple style="display:none;" onchange="onDesignerFilesSelected(this.files)">
       <span class="upload-summary" id="designerSummary">파일 0개 · 슬롯 0개</span>
     </div>
     <div class="upload-designer-body">
       <div class="upload-lib">
         <div style="font-size:12px;font-weight:700;margin-bottom:8px;">업로드 파일</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">파일을 원하는 영역으로 드래그해 배치하세요</div>
         <div id="designerLibrary" class="upload-lib-grid"></div>
       </div>
       <div class="upload-stage-wrap">
         <div id="designerStage" class="upload-stage"></div>
       </div>
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn-action" onclick="applyDesignerFullFill()">화면 맞춤</button>
+        <button class="btn-action" onclick="resetDesignerLayout()">레이아웃 초기화</button>
+      </div>
+      <div style="display:flex;gap:8px;">
       <button class="btn-action" onclick="closeUploadDesigner()">취소</button>
-      <button class="btn btn-accent" onclick="submitUploadDesigner()">배치 저장 후 업로드</button>
+      <button class="btn btn-accent" onclick="submitUploadDesigner()">업로드</button>
+      </div>
     </div>
   </div>
 </div>
@@ -736,6 +826,46 @@
         <option value="free">자유 배치</option>
         <option value="grid">그리드 배치</option>
       </select>
+    </div>
+    <div id="weatherModalFields" style="display:none;">
+      <label style="font-size:12px;color:var(--muted);">위치</label>
+      <div class="weather-search-row">
+        <input id="weatherLocationInput" placeholder="예: 수원, 서울, Busan">
+        <button class="btn-action" type="button" onclick="searchWeatherLocations()">검색</button>
+      </div>
+      <div id="weatherSearchResults" class="weather-search-results"></div>
+      <div id="weatherSelectedHint" class="weather-selected-hint">위치를 검색하고 목록에서 선택하세요.</div>
+      <label style="font-size:12px;color:var(--muted);">표출 형태</label>
+      <select id="weatherLayoutType">
+        <option value="landscape">가로형</option>
+        <option value="portrait">세로형</option>
+      </select>
+      <label style="font-size:12px;color:var(--muted);">표시 유형</label>
+      <select id="weatherViewType">
+        <option value="single">단일</option>
+        <option value="weekly">주간</option>
+        <option value="hourly">시간별</option>
+      </select>
+      <label style="font-size:12px;color:var(--muted);">테마</label>
+      <select id="weatherThemeType">
+        <option value="dark">다크</option>
+        <option value="light">라이트</option>
+      </select>
+    </div>
+    <div id="contentEditFields" style="display:none;">
+      <label style="font-size:12px;color:var(--muted);">콘텐츠 이름</label>
+      <input id="contentEditNameInput" placeholder="콘텐츠 이름">
+      <div id="contentEditUrlWrap" style="display:none;">
+        <label style="font-size:12px;color:var(--muted);">URL / 내부 경로</label>
+        <input id="contentEditUrlInput" placeholder="https://example.com 또는 /weather-content.html?...">
+      </div>
+    </div>
+    <div id="logDownloadFields" style="display:none;">
+      <label style="font-size:12px;color:var(--muted);">시작 시각</label>
+      <input id="logDownloadFromInput" type="datetime-local">
+      <label style="font-size:12px;color:var(--muted);">종료 시각</label>
+      <input id="logDownloadToInput" type="datetime-local">
+      <div class="modal-hint">비워두면 현재 보이는 범주의 전체 기간을 다운로드합니다.</div>
     </div>
     <div class="ui-modal-actions">
       <button class="btn-action" id="uiModalCancelBtn">취소</button>
@@ -767,6 +897,7 @@
         <div id="channelCalendarJump" class="calendar-jump">
           <select id="channelCalendarYear"></select>
           <select id="channelCalendarMonth"></select>
+          <select id="channelCalendarDay"></select>
           <button class="btn-action" onclick="applyChannelCalendarJump()">이동</button>
         </div>
       </div>
@@ -825,6 +956,9 @@ const state = {
   deviceActionResults: {},
   uploadDesigner: {
     open: false,
+    editingId: null,
+    editingMediaFilename: null,
+    contentName: '',
     orientation: 'landscape',
     split: 1,
     files: [],
@@ -838,6 +972,8 @@ const state = {
 };
 let _dashInterval = null;
 let _uiModalResolve = null;
+let _weatherSearchResults = [];
+let _weatherSelectedLocation = null;
 
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', state.theme === 'dark' ? 'dark' : 'light');
@@ -881,13 +1017,21 @@ function openInlineMenu(event, items = []) {
   }, 0);
 }
 
-function uiModalOpen({ title, message = '', input = null, upload = false, okText = '확인', cancelText = '취소' }) {
+function uiModalOpen({ title, message = '', input = null, upload = false, weather = false, contentEdit = null, logDownload = false, okText = '확인', cancelText = '취소' }) {
   return new Promise((resolve) => {
     const ov = document.getElementById('uiModalOverlay');
     const titleEl = document.getElementById('uiModalTitle');
     const msgEl = document.getElementById('uiModalMessage');
     const inputEl = document.getElementById('uiModalInput');
     const uploadEl = document.getElementById('uploadModalFields');
+    const weatherEl = document.getElementById('weatherModalFields');
+    const contentEditEl = document.getElementById('contentEditFields');
+    const logDownloadEl = document.getElementById('logDownloadFields');
+    const contentEditNameEl = document.getElementById('contentEditNameInput');
+    const contentEditUrlWrap = document.getElementById('contentEditUrlWrap');
+    const contentEditUrlEl = document.getElementById('contentEditUrlInput');
+    const logDownloadFromEl = document.getElementById('logDownloadFromInput');
+    const logDownloadToEl = document.getElementById('logDownloadToInput');
     const okBtn = document.getElementById('uiModalOkBtn');
     const cancelBtn = document.getElementById('uiModalCancelBtn');
     titleEl.textContent = title || '';
@@ -895,6 +1039,42 @@ function uiModalOpen({ title, message = '', input = null, upload = false, okText
     inputEl.style.display = input !== null ? '' : 'none';
     inputEl.value = input || '';
     uploadEl.style.display = upload ? '' : 'none';
+    weatherEl.style.display = weather ? '' : 'none';
+    contentEditEl.style.display = contentEdit ? '' : 'none';
+    logDownloadEl.style.display = logDownload ? '' : 'none';
+    if (weather) {
+      const locationEl = document.getElementById('weatherLocationInput');
+      const layoutTypeEl = document.getElementById('weatherLayoutType');
+      const viewTypeEl = document.getElementById('weatherViewType');
+      const themeTypeEl = document.getElementById('weatherThemeType');
+      const resultEl = document.getElementById('weatherSearchResults');
+      const hintEl = document.getElementById('weatherSelectedHint');
+      _weatherSearchResults = [];
+      _weatherSelectedLocation = null;
+      if (locationEl) {
+        locationEl.value = '서울';
+        locationEl.onkeydown = (ev) => {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            searchWeatherLocations();
+          }
+        };
+      }
+      if (viewTypeEl) viewTypeEl.value = 'weekly';
+      if (layoutTypeEl) layoutTypeEl.value = state.uploadDesigner.orientation === 'portrait' ? 'portrait' : 'landscape';
+      if (themeTypeEl) themeTypeEl.value = state.theme === 'dark' ? 'dark' : 'light';
+      if (resultEl) resultEl.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px;">검색어를 입력하고 검색하세요.</div>';
+      if (hintEl) hintEl.textContent = '위치를 검색하고 목록에서 선택하세요.';
+    }
+    if (contentEdit) {
+      if (contentEditNameEl) contentEditNameEl.value = contentEdit.name || '';
+      if (contentEditUrlWrap) contentEditUrlWrap.style.display = contentEdit.showUrl ? '' : 'none';
+      if (contentEditUrlEl) contentEditUrlEl.value = contentEdit.url || '';
+    }
+    if (logDownload) {
+      if (logDownloadFromEl) logDownloadFromEl.value = logDownload.from || '';
+      if (logDownloadToEl) logDownloadToEl.value = logDownload.to || '';
+    }
     okBtn.textContent = okText;
     cancelBtn.textContent = cancelText;
     ov.style.display = 'flex';
@@ -910,6 +1090,24 @@ function uiModalOpen({ title, message = '', input = null, upload = false, okText
         cleanup({
           layoutType: document.getElementById('uploadLayoutType').value,
           placementMode: document.getElementById('uploadPlacementMode').value
+        });
+      } else if (weather) {
+        cleanup({
+          location: document.getElementById('weatherLocationInput')?.value || '',
+          layoutType: document.getElementById('weatherLayoutType')?.value || 'landscape',
+          viewType: document.getElementById('weatherViewType')?.value || 'weekly',
+          themeType: document.getElementById('weatherThemeType')?.value || 'dark',
+          selected: _weatherSelectedLocation
+        });
+      } else if (contentEdit) {
+        cleanup({
+          name: contentEditNameEl?.value || '',
+          url: contentEditUrlEl?.value || ''
+        });
+      } else if (logDownload) {
+        cleanup({
+          from: logDownloadFromEl?.value || '',
+          to: logDownloadToEl?.value || ''
         });
       } else if (input !== null) cleanup(inputEl.value);
       else cleanup(true);
@@ -928,6 +1126,19 @@ async function uiPrompt(title, initialValue = '') {
   const result = await uiModalOpen({ title, input: initialValue });
   if (result === null) return null;
   return String(result);
+}
+
+async function askImmediateContentRepublish() {
+  const ok = await uiConfirm('수정한 콘텐츠를 현재 송출 중인 채널에도 바로 반영할까요?', '즉시 반영', '즉시 반영', '다음 송출부터');
+  if (!ok) return false;
+  try {
+    await api('POST', '/api/channels/rebroadcast', {});
+    toast('현재 송출 채널에 즉시 반영했습니다');
+    return true;
+  } catch (err) {
+    toast(err.message || '즉시 반영에 실패했습니다. 다음 송출부터 적용됩니다.', 'error');
+    return false;
+  }
 }
 
 function getActiveTabName() {
@@ -1805,9 +2016,9 @@ function renderMediaGrid(groupId) {
   const titleEl = document.getElementById('currentGroupTitle');
   if (titleEl) titleEl.textContent = title;
   grid.innerHTML = files.map(f => {
-    const disp = f.type === 'web' ? (f.label || f.webUrl || '웹 콘텐츠') : f.filename.replace(/^\d+_/, '');
+    const disp = (f.label || (f.type === 'web' ? (f.webUrl || '웹 콘텐츠') : f.filename.replace(/^\d+_/, '')));
     const thumb = f.type === 'web'
-      ? `<div style="display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;width:100%;height:110px;background:#0f1722;color:#9fb3c8;font-size:12px;">🌐<span>WEB</span></div>`
+      ? `<div style="display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;width:100%;height:110px;background:#0f1722;color:#9fb3c8;font-size:12px;">${f.webKind === 'designer' ? '▦' : '🌐'}<span>${f.webKind === 'designer' ? 'LAYOUT' : 'WEB'}</span></div>`
       : f.type === 'video'
       ? `<video src="/media/${f.filename}" preload="metadata" controls style="width:100%;height:110px;object-fit:cover;display:block;background:#000;"></video>`
       : `<img src="/media/${f.filename}" loading="lazy">`;
@@ -1821,9 +2032,12 @@ function renderMediaGrid(groupId) {
           <option value="">-- 그룹 없음 --</option>
           ${state.groups.map(g => { const inG = g.files.some(gf=>(gf.filename||gf)===f.filename); return `<option value="${g.id}" ${inG?'selected':''}>${g.name}</option>`; }).join('')}
         </select>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:6px;">
           <small style="color:var(--muted);">${f.type==='web' ? 'WEB' : `${(f.size/1024/1024).toFixed(1)}MB`}</small>
-          <button class="btn-action" onclick="deleteMedia('${f.filename}')" style="color:var(--danger);">삭제</button>
+          <div style="display:flex;gap:6px;">
+            <button class="btn-action" onclick="editMedia('${f.filename}')" style="font-size:11px;">수정</button>
+            <button class="btn-action" onclick="deleteMedia('${f.filename}')" style="color:var(--danger);">삭제</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -1864,27 +2078,59 @@ async function moveToGroup(filename, groupId) {
   toast('그룹 변경 완료');
 }
 
-async function uploadFiles(files) {
+async function uploadFiles(files, options = {}) {
+  const opts = { silent: false, groupId: state.currentGroup || null, hidden: false, ...options };
   const fd = new FormData();
-  for (let f of files) fd.append('files', f);
-  if (state.currentGroup) fd.append('groupId', state.currentGroup);
+  for (const f of files) fd.append('files', f);
+  if (opts.groupId) fd.append('groupId', opts.groupId);
+  if (opts.hidden) fd.append('hidden', '1');
   const prog = document.getElementById('uploadProgress');
   const bar = document.getElementById('progressBar');
-  prog.style.display = 'block'; bar.style.width = '0';
-  const xhr = new XMLHttpRequest();
-  xhr.open('POST', '/api/media');
-  xhr.upload.onprogress = e => bar.style.width = (e.loaded / e.total * 100) + '%';
-  xhr.onload = () => {
-    toast('업로드 완료'); prog.style.display = 'none';
-    document.getElementById('fileInput').value = '';
-    loadMedia();
-  };
-  xhr.onerror = () => { toast('업로드 실패', 'error'); prog.style.display = 'none'; };
-  xhr.send(fd);
+  if (prog && bar) {
+    prog.style.display = 'block';
+    bar.style.width = '0';
+  }
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/media');
+    xhr.upload.onprogress = e => {
+      if (bar && e.total) bar.style.width = `${(e.loaded / e.total) * 100}%`;
+    };
+    xhr.onload = async () => {
+      if (prog) prog.style.display = 'none';
+      if (xhr.status < 200 || xhr.status >= 300) {
+        const msg = (() => {
+          try { return JSON.parse(xhr.responseText || '{}').error || '업로드 실패'; } catch { return '업로드 실패'; }
+        })();
+        if (!opts.silent) toast(msg, 'error');
+        reject(new Error(msg));
+        return;
+      }
+      const data = (() => {
+        try { return JSON.parse(xhr.responseText || '{}'); } catch { return { ok: true, files: [] }; }
+      })();
+      if (!opts.silent) {
+        toast('업로드 완료');
+        const input = document.getElementById('fileInput');
+        if (input) input.value = '';
+        await loadMedia();
+      }
+      resolve(data);
+    };
+    xhr.onerror = () => {
+      if (prog) prog.style.display = 'none';
+      if (!opts.silent) toast('업로드 실패', 'error');
+      reject(new Error('업로드 실패'));
+    };
+    xhr.send(fd);
+  });
 }
 
 async function openUploadModal() {
   state.uploadDesigner.open = true;
+  state.uploadDesigner.editingId = null;
+  state.uploadDesigner.editingMediaFilename = null;
+  state.uploadDesigner.contentName = '';
   state.uploadDesigner.orientation = 'landscape';
   state.uploadDesigner.split = 1;
   state.uploadDesigner.files = [];
@@ -1892,8 +2138,6 @@ async function openUploadModal() {
   state.uploadDesigner.activeSlotIdx = null;
   state.uploadDesigner.placements = [];
   state.uploadDesigner.objectUrls = {};
-  const webInput = document.getElementById('designerWebUrl');
-  if (webInput) webInput.value = '';
   document.getElementById('uploadDesignerOverlay').style.display = 'flex';
   syncDesignerPillUI();
   resetDesignerLayout();
@@ -1903,6 +2147,9 @@ function closeUploadDesigner(e) {
   if (e && e.target !== e.currentTarget) return;
   document.getElementById('uploadDesignerOverlay').style.display = 'none';
   state.uploadDesigner.open = false;
+  state.uploadDesigner.editingId = null;
+  state.uploadDesigner.editingMediaFilename = null;
+  state.uploadDesigner.contentName = '';
   Object.values(state.uploadDesigner.objectUrls || {}).forEach((url) => {
     try { URL.revokeObjectURL(url); } catch {}
   });
@@ -1926,7 +2173,73 @@ function setDesignerSplit(split) {
   resetDesignerLayout();
 }
 
+function addDesignerArea() {
+  const ds = state.uploadDesigner;
+  if (!Array.isArray(ds.placements) || !ds.placements.length) {
+    resetDesignerLayout();
+    return;
+  }
+  const count = ds.placements.length;
+  const size = ds.orientation === 'portrait' ? { w: 0.5, h: 0.22 } : { w: 0.22, h: 0.5 };
+  const step = ds.orientation === 'portrait' ? { x: 0.12, y: 0.08 } : { x: 0.08, y: 0.12 };
+  const p = {
+    id: count + 1,
+    x: Math.max(0, Math.min(1 - size.w, 0.04 + (count % 5) * step.x)),
+    y: Math.max(0, Math.min(1 - size.h, 0.04 + (count % 5) * step.y)),
+    w: size.w,
+    h: size.h,
+    fileIdx: null,
+    fit: 'cover',
+    focusX: 50,
+    focusY: 50,
+    zoom: 100,
+    aspectRatio: null
+  };
+  ds.placements.push(p);
+  ds.activeSlotIdx = ds.placements.length - 1;
+  syncDesignerPillUI();
+  renderDesignerStage();
+  syncDesignerSummary();
+  toast(`영역 ${ds.placements.length} 추가`);
+}
+
+function setActiveSlotAspectRatio(ratio) {
+  const ds = state.uploadDesigner;
+  const idx = ds.activeSlotIdx;
+  if (idx === null || idx === undefined) {
+    toast('먼저 영역을 선택하세요', 'error');
+    return;
+  }
+  const p = ds.placements?.[idx];
+  if (!p) return;
+  const next = ['16:9', '4:3', '9:16', '3:4'].includes(ratio) ? ratio : null;
+  p.aspectRatio = p.aspectRatio === next ? null : next;
+  if (p.aspectRatio) applyAspectRatioToPlacement(p, ds.stageSize);
+  syncDesignerPillUI();
+  renderDesignerStage();
+}
+
+function applyAspectRatioToPlacement(p, stageSize) {
+  const ratioMap = { '16:9': 16 / 9, '4:3': 4 / 3, '9:16': 9 / 16, '3:4': 3 / 4 };
+  const ratio = ratioMap[p.aspectRatio] || null;
+  if (!ratio) return;
+  const sw = Math.max(1, Number(stageSize?.w || 1));
+  const sh = Math.max(1, Number(stageSize?.h || 1));
+  const maxW = Math.max(0.12, 1 - p.x);
+  const maxH = Math.max(0.12, 1 - p.y);
+  let w = Math.max(0.12, Math.min(maxW, Number(p.w) || 0.12));
+  let h = (w * sw) / (ratio * sh);
+  if (h > maxH) {
+    h = maxH;
+    w = (h * ratio * sh) / sw;
+  }
+  p.w = Math.max(0.12, Math.min(maxW, w));
+  p.h = Math.max(0.12, Math.min(maxH, h));
+}
+
 function syncDesignerPillUI() {
+  const designer = document.querySelector('#uploadDesignerOverlay .upload-designer');
+  if (designer) designer.classList.toggle('portrait-mode', state.uploadDesigner.orientation === 'portrait');
   const oBtns = [...document.querySelectorAll('#designerOrientationBar .designer-pill')];
   oBtns.forEach((btn, idx) => {
     const val = idx === 0 ? 'landscape' : 'portrait';
@@ -1937,6 +2250,30 @@ function syncDesignerPillUI() {
     const val = idx + 1;
     btn.classList.toggle('active', state.uploadDesigner.split === val);
   });
+  const aBtns = [...document.querySelectorAll('#designerAspectBar .designer-pill')];
+  const activePlacement = state.uploadDesigner.placements?.[state.uploadDesigner.activeSlotIdx];
+  const activeRatio = activePlacement?.aspectRatio || null;
+  aBtns.forEach((btn, idx) => {
+    const vals = ['16:9', '4:3', '9:16', '3:4'];
+    const val = vals[idx];
+    btn.classList.toggle('active', activeRatio === val);
+  });
+}
+
+function fitDesignerStageToViewport() {
+  const stage = document.getElementById('designerStage');
+  const wrap = stage?.parentElement;
+  if (!stage || !wrap) return;
+  const ds = state.uploadDesigner;
+  const baseW = Number(ds.stageSize?.w || 0);
+  const baseH = Number(ds.stageSize?.h || 0);
+  if (!baseW || !baseH) return;
+  const availableW = Math.max(1, wrap.clientWidth - 12);
+  const availableH = Math.max(1, wrap.clientHeight - 12);
+  const scale = Math.min(availableW / baseW, availableH / baseH, 1);
+  stage.style.transform = 'none';
+  stage.style.width = `${Math.floor(baseW * scale)}px`;
+  stage.style.height = `${Math.floor(baseH * scale)}px`;
 }
 
 function onDesignerFilesSelected(fileList) {
@@ -1969,10 +2306,211 @@ function syncDesignerSummary() {
   el.textContent = `파일 ${ds.files.length}개 · 슬롯 ${ds.placements.length}개 · 배치 ${assigned}개`;
 }
 
-function addDesignerWebSource() {
-  const input = document.getElementById('designerWebUrl');
-  const url = String(input?.value || '').trim();
-  if (!url) return;
+function guessDesignerMediaType(filename) {
+  const ext = String(filename || '').toLowerCase();
+  return /\.(mp4|mov|m4v|webm|ogg)$/i.test(ext) ? 'video/mp4' : 'image/*';
+}
+
+function getDesignerFileDisplayName(file) {
+  if (!file) return '콘텐츠';
+  if (file.__existingMedia) return file.name || file.label || String(file.filename || '').replace(/^\d+_/, '');
+  if (file.__web) return file.name || '웹 콘텐츠';
+  return file.name || '콘텐츠';
+}
+
+function getDesignerPreviewUrl(file) {
+  if (!file) return '';
+  if (file.__web) return String(file.url || '').trim();
+  if (file.__existingMedia) return file.url || `/media/${encodeURIComponent(file.filename || '')}`;
+  return getDesignerObjectUrl(file);
+}
+
+function deriveDesignerContentName() {
+  const ds = state.uploadDesigner;
+  const assignedNames = (ds.placements || [])
+    .map(p => (p.fileIdx !== null && p.fileIdx !== undefined) ? ds.files[p.fileIdx] : null)
+    .filter(Boolean)
+    .map(file => getDesignerFileDisplayName(file));
+  const uniq = [...new Set(assignedNames)];
+  if (!uniq.length) return '디자인 콘텐츠';
+  if (uniq.length === 1) return uniq[0];
+  return `${uniq[0]} 외 ${uniq.length - 1}`;
+}
+
+function openDesignerForEdit(item) {
+  const webId = String(item?.filename || '').startsWith('web:') ? String(item.filename).slice(4) : '';
+  const designer = item?.designer || null;
+  if (!webId || !designer) {
+    toast('디자인 콘텐츠 정보를 찾을 수 없습니다', 'error');
+    return;
+  }
+  const files = [];
+  const sourceKeyToIndex = new Map();
+  function ensureFileForSource(source) {
+    if (!source) return null;
+    const key = source.type === 'media'
+      ? `media:${source.filename}`
+      : `web:${source.url}::${source.label || ''}`;
+    if (sourceKeyToIndex.has(key)) return sourceKeyToIndex.get(key);
+    let file;
+    if (source.type === 'media') {
+      file = {
+        __existingMedia: true,
+        filename: source.filename,
+        name: source.label || String(source.filename || '').replace(/^\d+_/, ''),
+        type: guessDesignerMediaType(source.filename),
+        url: `/media/${encodeURIComponent(source.filename || '')}`
+      };
+    } else {
+      file = {
+        __web: true,
+        name: source.label || '웹 콘텐츠',
+        type: 'text/html',
+        url: source.url || ''
+      };
+    }
+    const idx = files.push(file) - 1;
+    sourceKeyToIndex.set(key, idx);
+    return idx;
+  }
+
+  state.uploadDesigner.open = true;
+  state.uploadDesigner.editingId = webId;
+  state.uploadDesigner.editingMediaFilename = null;
+  state.uploadDesigner.contentName = item.label || '';
+  state.uploadDesigner.orientation = designer.orientation === 'portrait' ? 'portrait' : 'landscape';
+  state.uploadDesigner.split = [1, 2, 3, 4].includes(Number(designer.split)) ? Number(designer.split) : 1;
+  state.uploadDesigner.files = files;
+  state.uploadDesigner.selectedFileIdx = null;
+  state.uploadDesigner.activeSlotIdx = 0;
+  state.uploadDesigner.drag = null;
+  state.uploadDesigner.objectUrls = {};
+  state.uploadDesigner.stageSize = {
+    w: Number(designer.stageSize?.w || (state.uploadDesigner.orientation === 'portrait' ? 540 : 960)),
+    h: Number(designer.stageSize?.h || (state.uploadDesigner.orientation === 'portrait' ? 960 : 540))
+  };
+  state.uploadDesigner.placements = (Array.isArray(designer.placements) ? designer.placements : []).map((p, idx) => ({
+    id: idx + 1,
+    x: Number(p.x || 0),
+    y: Number(p.y || 0),
+    w: Number(p.w || 1),
+    h: Number(p.h || 1),
+    fileIdx: ensureFileForSource(p.source || null),
+    fit: p.fit || 'cover',
+    focusX: Number.isFinite(Number(p.focusX)) ? Number(p.focusX) : 50,
+    focusY: Number.isFinite(Number(p.focusY)) ? Number(p.focusY) : 50,
+    zoom: Number.isFinite(Number(p.zoom)) ? Number(p.zoom) : 100,
+    aspectRatio: null
+  }));
+  if (!state.uploadDesigner.files.length) state.uploadDesigner.selectedFileIdx = null;
+  else state.uploadDesigner.selectedFileIdx = 0;
+  document.getElementById('uploadDesignerOverlay').style.display = 'flex';
+  syncDesignerPillUI();
+  renderDesignerLibrary();
+  renderDesignerStage();
+  syncDesignerSummary();
+}
+
+function openDesignerForMediaEdit(item) {
+  const filename = String(item?.filename || '').trim();
+  if (!filename) {
+    toast('파일 정보를 찾을 수 없습니다', 'error');
+    return;
+  }
+  const designer = item?.designer || null;
+  const baseFile = {
+    __existingMedia: true,
+    filename,
+    name: item.label || filename.replace(/^\d+_/, ''),
+    type: guessDesignerMediaType(filename),
+    url: `/media/${encodeURIComponent(filename)}`
+  };
+  state.uploadDesigner.open = true;
+  state.uploadDesigner.editingId = null;
+  state.uploadDesigner.editingMediaFilename = filename;
+  state.uploadDesigner.contentName = item.label || filename.replace(/^\d+_/, '');
+  state.uploadDesigner.files = [baseFile];
+  state.uploadDesigner.selectedFileIdx = 0;
+  state.uploadDesigner.drag = null;
+  state.uploadDesigner.objectUrls = {};
+  if (designer && Array.isArray(designer.placements) && designer.placements.length) {
+    state.uploadDesigner.orientation = designer.orientation === 'portrait' ? 'portrait' : 'landscape';
+    state.uploadDesigner.split = [1, 2, 3, 4].includes(Number(designer.split)) ? Number(designer.split) : 1;
+    state.uploadDesigner.stageSize = {
+      w: Number(designer.stageSize?.w || (state.uploadDesigner.orientation === 'portrait' ? 540 : 960)),
+      h: Number(designer.stageSize?.h || (state.uploadDesigner.orientation === 'portrait' ? 960 : 540))
+    };
+    const files = [baseFile];
+    const sourceKeyToIndex = new Map([[`media:${filename}`, 0]]);
+    function ensureSource(source) {
+      if (!source) return null;
+      const key = source.type === 'media'
+        ? `media:${source.filename}`
+        : `web:${source.url}::${source.label || ''}`;
+      if (sourceKeyToIndex.has(key)) return sourceKeyToIndex.get(key);
+      let file;
+      if (source.type === 'media') {
+        file = {
+          __existingMedia: true,
+          filename: source.filename,
+          name: source.label || String(source.filename || '').replace(/^\d+_/, ''),
+          type: guessDesignerMediaType(source.filename),
+          url: `/media/${encodeURIComponent(source.filename || '')}`
+        };
+      } else {
+        file = {
+          __web: true,
+          name: source.label || '웹 콘텐츠',
+          type: 'text/html',
+          url: source.url || ''
+        };
+      }
+      const idx = files.push(file) - 1;
+      sourceKeyToIndex.set(key, idx);
+      return idx;
+    }
+    state.uploadDesigner.files = files;
+    state.uploadDesigner.placements = designer.placements.map((p, idx) => ({
+      id: idx + 1,
+      x: Number(p.x || 0),
+      y: Number(p.y || 0),
+      w: Number(p.w || 1),
+      h: Number(p.h || 1),
+      fileIdx: ensureSource(p.source || null),
+      fit: p.fit || 'cover',
+      focusX: Number.isFinite(Number(p.focusX)) ? Number(p.focusX) : 50,
+      focusY: Number.isFinite(Number(p.focusY)) ? Number(p.focusY) : 50,
+      zoom: Number.isFinite(Number(p.zoom)) ? Number(p.zoom) : 100,
+      aspectRatio: null
+    }));
+  } else {
+    state.uploadDesigner.orientation = 'landscape';
+    state.uploadDesigner.split = 1;
+    resetDesignerLayout();
+    state.uploadDesigner.placements[0].fileIdx = 0;
+  }
+  state.uploadDesigner.activeSlotIdx = 0;
+  document.getElementById('uploadDesignerOverlay').style.display = 'flex';
+  syncDesignerPillUI();
+  renderDesignerLibrary();
+  renderDesignerStage();
+  syncDesignerSummary();
+}
+
+async function addDesignerWebSource() {
+  const raw = await uiModalOpen({
+    title: '웹 URL 추가',
+    message: '추가할 웹 주소를 입력하세요.',
+    input: 'https://',
+    okText: '추가',
+    cancelText: '취소'
+  });
+  if (raw === null || raw === undefined) return;
+  const url = String(raw || '').trim();
+  if (!url) {
+    toast('웹 URL을 입력하세요', 'error');
+    return;
+  }
   if (!/^https?:\/\//i.test(url)) {
     toast('웹 URL은 http/https로 시작해야 합니다', 'error');
     return;
@@ -1983,17 +2521,145 @@ function addDesignerWebSource() {
     name: `WEB ${state.uploadDesigner.files.filter(f => f?.__web).length + 1}`,
     url
   });
-  if (input) input.value = '';
   if (state.uploadDesigner.selectedFileIdx === null) state.uploadDesigner.selectedFileIdx = 0;
   renderDesignerLibrary();
   renderDesignerStage();
   syncDesignerSummary();
+  toast('웹 소스를 추가했습니다');
+}
+
+function renderWeatherSearchResults() {
+  const box = document.getElementById('weatherSearchResults');
+  if (!box) return;
+  if (!_weatherSearchResults.length) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px;">검색 결과가 없습니다.</div>';
+    return;
+  }
+  box.innerHTML = _weatherSearchResults.map((item, idx) => {
+    const active = _weatherSelectedLocation && _weatherSelectedLocation._idx === idx;
+    const label = `${item.name}${item.admin1 ? ' · ' + item.admin1 : ''}${item.country ? ' · ' + item.country : ''}`;
+    return `<button type="button" class="weather-search-item ${active ? 'active' : ''}" onclick="selectWeatherLocation(${idx})">${escapeHtml(label)}</button>`;
+  }).join('');
+}
+
+async function searchWeatherLocations() {
+  const inputEl = document.getElementById('weatherLocationInput');
+  const keyword = String(inputEl?.value || '').trim();
+  if (!keyword) {
+    toast('검색할 위치를 입력하세요', 'error');
+    return;
+  }
+  try {
+    const allResults = [];
+    const seen = new Set();
+    const pushUnique = (arr = []) => {
+      for (const item of arr) {
+        const lat = Number(item.latitude);
+        const lon = Number(item.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+        const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        allResults.push(item);
+      }
+    };
+
+    const omKo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(keyword)}&count=10&language=ko`).then(r => r.json()).catch(() => null);
+    pushUnique(Array.isArray(omKo?.results) ? omKo.results : []);
+
+    if (!allResults.length) {
+      const omAny = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(keyword)}&count=10`).then(r => r.json()).catch(() => null);
+      pushUnique(Array.isArray(omAny?.results) ? omAny.results : []);
+    }
+
+    if (!allResults.length) {
+      const osm = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&accept-language=ko,en&q=${encodeURIComponent(keyword)}`).then(r => r.json()).catch(() => []);
+      pushUnique((Array.isArray(osm) ? osm : []).map((r) => ({
+        name: (r.display_name || '').split(',')[0] || keyword,
+        admin1: (r.display_name || '').split(',').slice(1, 3).join(' · ').trim(),
+        country: (r.display_name || '').split(',').slice(-1)[0]?.trim() || '',
+        latitude: Number(r.lat),
+        longitude: Number(r.lon),
+        timezone: 'auto'
+      })));
+    }
+
+    _weatherSearchResults = allResults;
+    _weatherSelectedLocation = null;
+    renderWeatherSearchResults();
+    const hintEl = document.getElementById('weatherSelectedHint');
+    if (hintEl) hintEl.textContent = _weatherSearchResults.length ? '검색 결과에서 위치를 선택하세요.' : '검색 결과가 없습니다. 다른 키워드로 시도해 주세요.';
+  } catch (e) {
+    toast('위치 검색에 실패했습니다', 'error');
+  }
+}
+
+function selectWeatherLocation(idx) {
+  const item = _weatherSearchResults[idx];
+  if (!item) return;
+  _weatherSelectedLocation = { ...item, _idx: idx };
+  const inputEl = document.getElementById('weatherLocationInput');
+  if (inputEl) inputEl.value = item.name || '';
+  const hintEl = document.getElementById('weatherSelectedHint');
+  if (hintEl) {
+    hintEl.textContent = `선택됨: ${item.name}${item.admin1 ? ' · ' + item.admin1 : ''}${item.country ? ' · ' + item.country : ''}`;
+  }
+  renderWeatherSearchResults();
+}
+
+async function addDesignerWeatherSource() {
+  const raw = await uiModalOpen({
+    title: '날씨 콘텐츠 추가',
+    message: '위치를 검색해서 선택한 뒤 표시 유형을 설정하세요.',
+    weather: true,
+    okText: '추가',
+    cancelText: '취소'
+  });
+  if (!raw) return;
+  if (!raw.selected) {
+    toast('위치를 검색 후 목록에서 선택하세요', 'error');
+    return;
+  }
+  const sel = raw.selected;
+  const location = String(sel.name || raw.location || '').trim();
+  if (!location || !Number.isFinite(sel.latitude) || !Number.isFinite(sel.longitude)) {
+    toast('선택한 위치 정보가 올바르지 않습니다', 'error');
+    return;
+  }
+  const label = `${sel.name || location}${sel.admin1 ? ' · ' + sel.admin1 : ''}`;
+  const layoutLabel = (raw.layoutType || 'landscape') === 'portrait' ? '세로형' : '가로형';
+  const viewLabelMap = { single: '단일', weekly: '주간', hourly: '시간별' };
+  const viewLabel = viewLabelMap[raw.viewType || 'weekly'] || '주간';
+  const themeLabel = (raw.themeType || 'dark') === 'light' ? '라이트' : '다크';
+  const params = new URLSearchParams({
+    location,
+    label,
+    lat: String(sel.latitude),
+    lon: String(sel.longitude),
+    tz: sel.timezone || 'Asia/Seoul',
+    view: raw.viewType || 'weekly',
+    theme: raw.themeType || 'dark',
+    layout: raw.layoutType || (state.uploadDesigner.orientation === 'portrait' ? 'portrait' : 'landscape')
+  });
+  const url = `/weather-content.html?${params.toString()}`;
+  state.uploadDesigner.files.push({
+    __web: true,
+    type: 'text/html',
+    name: `날씨 | ${label} | ${layoutLabel} | ${viewLabel} | ${themeLabel}`,
+    url
+  });
+  if (state.uploadDesigner.selectedFileIdx === null) state.uploadDesigner.selectedFileIdx = 0;
+  renderDesignerLibrary();
+  renderDesignerStage();
+  syncDesignerSummary();
+  toast('날씨 콘텐츠를 추가했습니다');
 }
 
 function getDesignerBaseLayout(split, orientation) {
   const isPortrait = orientation === 'portrait';
-  const w = isPortrait ? 540 : 900;
-  const h = isPortrait ? 900 : 540;
+  // 16:9 / 9:16 비율 고정 (예: 1920x1080, 1080x1920)
+  const w = isPortrait ? 540 : 960;
+  const h = isPortrait ? 960 : 540;
   const layouts = {
     1: [{ x: 0, y: 0, w: 1, h: 1 }],
     2: isPortrait
@@ -2013,7 +2679,8 @@ function getDesignerBaseLayout(split, orientation) {
       fit: 'cover',
       focusX: 50,
       focusY: 50,
-      zoom: 100
+      zoom: 100,
+      aspectRatio: null
     }))
   };
 }
@@ -2024,6 +2691,7 @@ function resetDesignerLayout() {
   ds.placements = base.placements;
   ds.activeSlotIdx = 0;
   ds.stageSize = { w: base.w, h: base.h };
+  syncDesignerPillUI();
   renderDesignerLibrary();
   renderDesignerStage();
   syncDesignerSummary();
@@ -2040,18 +2708,20 @@ function renderDesignerLibrary() {
   box.innerHTML = files.map((f, idx) => {
     const isWeb = !!f?.__web;
     const isVideo = !isWeb && /^video\//.test(f.type || '');
+    const previewUrl = getDesignerPreviewUrl(f);
     const thumb = isWeb
       ? `<div style="padding:8px;text-align:center;">🌐<br><span style="font-size:11px;">WEB</span></div>`
-      : (isVideo ? `<video src="${getDesignerObjectUrl(f)}" muted></video>` : `<img src="${getDesignerObjectUrl(f)}" alt="${escapeHtml(f.name)}">`);
+      : (isVideo ? `<video src="${previewUrl}" muted></video>` : `<img src="${previewUrl}" alt="${escapeHtml(getDesignerFileDisplayName(f))}">`);
     return `<div class="upload-lib-item ${state.uploadDesigner.selectedFileIdx===idx?'active':''}" draggable="true"
       onclick="selectDesignerFile(${idx})" ondragstart="onDesignerFileDragStart(event, ${idx})">
       <div class="upload-lib-thumb">${thumb}</div>
-      <div style="margin-top:6px;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(f.__web ? f.url : f.name)}">${escapeHtml(f.name)}</div>
+      <div style="margin-top:6px;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(f.__web ? f.url : getDesignerFileDisplayName(f))}">${escapeHtml(getDesignerFileDisplayName(f))}</div>
     </div>`;
   }).join('');
 }
 
 function getDesignerObjectUrl(file) {
+  if (file?.__existingMedia) return file.url || `/media/${encodeURIComponent(file.filename || '')}`;
   const key = `${file.name}__${file.size}__${file.lastModified}`;
   if (!state.uploadDesigner.objectUrls[key]) {
     state.uploadDesigner.objectUrls[key] = URL.createObjectURL(file);
@@ -2088,10 +2758,15 @@ function renderDesignerStage() {
     const mediaStyle = `object-fit:${fit};object-position:${focusX}% ${focusY}%;transform:scale(${(zoom/100).toFixed(3)});transform-origin:${focusX}% ${focusY}%;`;
     const preview = file
       ? (file.__web
-        ? `<iframe src="${escapeHtml(file.url)}" style="width:100%;height:100%;border:none;background:#fff;"></iframe>`
+        ? `<iframe src="${escapeHtml(file.url)}" style="width:100%;height:100%;border:none;background:transparent;"></iframe>`
         : (/^video\//.test(file.type || '')
-          ? `<video src="${getDesignerObjectUrl(file)}" muted style="${mediaStyle}"></video>`
-          : `<img src="${getDesignerObjectUrl(file)}" alt="${escapeHtml(file.name)}" style="${mediaStyle}">`))
+          ? `<video src="${getDesignerPreviewUrl(file)}" muted style="${mediaStyle}"></video>`
+          : (() => {
+              const src = getDesignerPreviewUrl(file);
+              return `<div class="slot-media-stack">
+                <img class="slot-media-main" src="${src}" alt="${escapeHtml(getDesignerFileDisplayName(file))}" style="${mediaStyle}">
+              </div>`;
+            })()))
       : '<span>파일 배치</span>';
     const isActive = ds.activeSlotIdx === idx || ds.drag?.slotIdx===idx;
     return `<div class="upload-slot ${isActive?'active':''}" style="left:${left};top:${top};width:${width};height:${height};"
@@ -2101,11 +2776,36 @@ function renderDesignerStage() {
       ondragover="onDesignerSlotDragOver(event)" ondrop="onDesignerSlotDrop(event, ${idx})"
       onclick="onDesignerSlotClick(event, ${idx})"
       ondblclick="assignSelectedFileToSlot(${idx})">
+      <button type="button" class="upload-slot-delete" onclick="removeDesignerArea(event, ${idx})">×</button>
       <div class="upload-slot-label">영역 ${idx + 1}</div>
       <div class="upload-slot-preview">${preview}</div>
       <div class="upload-handle" onmousedown="startDesignerDrag(event, ${idx}, 'resize')"></div>
     </div>`;
   }).join('');
+  requestAnimationFrame(fitDesignerStageToViewport);
+}
+
+function removeDesignerArea(event, slotIdx) {
+  event.preventDefault();
+  event.stopPropagation();
+  const ds = state.uploadDesigner;
+  if (!Array.isArray(ds.placements) || ds.placements.length <= 1) {
+    toast('최소 1개 영역은 필요합니다', 'error');
+    return;
+  }
+  ds.placements.splice(slotIdx, 1);
+  ds.placements.forEach((p, i) => { p.id = i + 1; });
+  if (ds.activeSlotIdx === null || ds.activeSlotIdx === undefined) {
+    ds.activeSlotIdx = 0;
+  } else if (ds.activeSlotIdx >= ds.placements.length) {
+    ds.activeSlotIdx = ds.placements.length - 1;
+  } else if (ds.activeSlotIdx === slotIdx) {
+    ds.activeSlotIdx = Math.max(0, slotIdx - 1);
+  }
+  syncDesignerPillUI();
+  renderDesignerStage();
+  syncDesignerSummary();
+  toast(`영역 ${slotIdx + 1} 삭제`);
 }
 
 function startDesignerPointer(e, slotIdx) {
@@ -2130,6 +2830,7 @@ function onDesignerSlotDrop(e, slotIdx) {
   if (!p) return;
   p.fileIdx = idx;
   state.uploadDesigner.activeSlotIdx = slotIdx;
+  syncDesignerPillUI();
   renderDesignerStage();
   syncDesignerSummary();
 }
@@ -2137,6 +2838,7 @@ function onDesignerSlotDrop(e, slotIdx) {
 function onDesignerSlotClick(e, slotIdx) {
   e.preventDefault();
   state.uploadDesigner.activeSlotIdx = slotIdx;
+  syncDesignerPillUI();
   renderDesignerStage();
 }
 
@@ -2147,17 +2849,29 @@ function assignSelectedFileToSlot(slotIdx) {
   if (!p) return;
   p.fileIdx = fileIdx;
   state.uploadDesigner.activeSlotIdx = slotIdx;
+  syncDesignerPillUI();
   renderDesignerStage();
   syncDesignerSummary();
 }
 
-function assignSelectedFileToActiveSlot() {
-  const slotIdx = state.uploadDesigner.activeSlotIdx;
-  if (slotIdx === null || slotIdx === undefined) {
-    toast('먼저 우측 영역을 선택하세요', 'error');
+function applyDesignerFullFill() {
+  const ds = state.uploadDesigner;
+  const idx = ds.activeSlotIdx;
+  if (idx === null || idx === undefined) {
+    toast('먼저 영역을 선택하세요', 'error');
     return;
   }
-  assignSelectedFileToSlot(slotIdx);
+  const p = ds.placements?.[idx];
+  if (!p || p.fileIdx === null || p.fileIdx === undefined) {
+    toast('선택한 영역에 파일이 없습니다', 'error');
+    return;
+  }
+  p.fit = 'fill';
+  p.zoom = 100;
+  p.focusX = 50;
+  p.focusY = 50;
+  renderDesignerStage();
+  toast(`영역 ${idx + 1} 화면 맞춤 적용`);
 }
 
 function startDesignerDrag(e, slotIdx, mode) {
@@ -2182,6 +2896,7 @@ function startDesignerDrag(e, slotIdx, mode) {
     prevY: e.clientY
   };
   state.uploadDesigner.activeSlotIdx = slotIdx;
+  syncDesignerPillUI();
   document.addEventListener('mousemove', onDesignerDragging);
   document.addEventListener('mouseup', stopDesignerDrag);
 }
@@ -2205,8 +2920,27 @@ function onDesignerDragging(e) {
     p.focusX = Math.max(0, Math.min(100, (Number.isFinite(p.focusX) ? p.focusX : d.start.focusX) + (stepDx * 100)));
     p.focusY = Math.max(0, Math.min(100, (Number.isFinite(p.focusY) ? p.focusY : d.start.focusY) + (stepDy * 100)));
   } else {
-    p.w = Math.max(0.12, Math.min(1 - p.x, d.start.w + dx));
-    p.h = Math.max(0.12, Math.min(1 - p.y, d.start.h + dy));
+    const ratioMap = { '16:9': 16 / 9, '4:3': 4 / 3, '9:16': 9 / 16, '3:4': 3 / 4 };
+    const ratio = ratioMap[p.aspectRatio] || null;
+    if (ratio) {
+      const sw = Math.max(1, Number(ds.stageSize?.w || 1));
+      const sh = Math.max(1, Number(ds.stageSize?.h || 1));
+      const maxW = Math.max(0.12, 1 - p.x);
+      const maxH = Math.max(0.12, 1 - p.y);
+      let targetW = Math.max(0.12, Math.min(maxW, d.start.w + dx));
+      let targetH = (targetW * sw) / (ratio * sh);
+      if (targetH > maxH) {
+        targetH = maxH;
+        targetW = (targetH * ratio * sh) / sw;
+      }
+      targetW = Math.max(0.12, Math.min(maxW, targetW));
+      targetH = Math.max(0.12, Math.min(maxH, targetH));
+      p.w = targetW;
+      p.h = targetH;
+    } else {
+      p.w = Math.max(0.12, Math.min(1 - p.x, d.start.w + dx));
+      p.h = Math.max(0.12, Math.min(1 - p.y, d.start.h + dy));
+    }
   }
   renderDesignerStage();
 }
@@ -2229,51 +2963,177 @@ function stopDesignerDrag() {
 
 async function submitUploadDesigner() {
   const ds = state.uploadDesigner;
-  if (!ds.files.length) {
-    toast('업로드할 파일을 먼저 선택하세요', 'error');
+  if (!ds.files.length || !(ds.placements || []).some(p => p.fileIdx !== null && p.fileIdx !== undefined && ds.files[p.fileIdx])) {
+    toast('배치된 콘텐츠가 없습니다', 'error');
     return;
   }
-  state.uploadPreset = {
-    orientation: ds.orientation,
-    split: ds.split,
-    placements: ds.placements.map((p, idx) => ({
-      slot: idx + 1,
-      x: Number(p.x.toFixed(4)),
-      y: Number(p.y.toFixed(4)),
-      w: Number(p.w.toFixed(4)),
-      h: Number(p.h.toFixed(4)),
-      fileName: p.fileIdx !== null && p.fileIdx !== undefined ? ds.files[p.fileIdx]?.name : null,
-      fit: p.fit || 'cover',
-      focusX: Number((Number.isFinite(p.focusX) ? p.focusX : 50).toFixed(2)),
-      focusY: Number((Number.isFinite(p.focusY) ? p.focusY : 50).toFixed(2)),
-      zoom: Number((Number.isFinite(p.zoom) ? p.zoom : 100).toFixed(2))
-    }))
-  };
-  const webSources = ds.files.filter(f => f.__web);
-  for (const web of webSources) {
-    try {
-      await api('POST', '/api/web-contents', {
-        name: web.name || '웹 콘텐츠',
-        url: web.url,
+  const uploadedHiddenFilenames = [];
+  try {
+    const suggestedName = String(ds.contentName || '').trim() || deriveDesignerContentName();
+    const contentName = await uiModalOpen({
+      title: ds.editingId ? '콘텐츠 수정' : '콘텐츠 등록',
+      message: '콘텐츠 이름을 입력하세요.',
+      input: suggestedName,
+      okText: '저장',
+      cancelText: '취소'
+    });
+    if (contentName === null) return;
+    const trimmedName = String(contentName || '').trim();
+    if (!trimmedName) {
+      toast('콘텐츠 이름을 입력하세요', 'error');
+      return;
+    }
+    const uploadableIndexes = [];
+    const uploadableFiles = [];
+    ds.files.forEach((file, idx) => {
+      if (!file?.__web && !file?.__existingMedia) {
+        uploadableIndexes.push(idx);
+        uploadableFiles.push(file);
+      }
+    });
+    const uploadedFilenameByIndex = new Map();
+    if (uploadableFiles.length) {
+      const result = await uploadFiles(uploadableFiles, {
+        silent: true,
+        groupId: null,
+        hidden: true
+      });
+      let uploadPtr = 0;
+      uploadableIndexes.forEach((idx) => {
+        const uploaded = result?.files?.[uploadPtr++];
+        if (uploaded?.filename) {
+          uploadedFilenameByIndex.set(idx, uploaded.filename);
+          uploadedHiddenFilenames.push(uploaded.filename);
+        }
+      });
+    }
+    const placements = (ds.placements || []).map((p, idx) => {
+      const file = (p.fileIdx !== null && p.fileIdx !== undefined) ? ds.files[p.fileIdx] : null;
+      let source = null;
+      if (file?.__web) {
+        source = {
+          type: 'web',
+          url: String(file.url || '').trim(),
+          label: getDesignerFileDisplayName(file)
+        };
+      } else if (file?.__existingMedia) {
+        source = {
+          type: 'media',
+          filename: file.filename,
+          label: getDesignerFileDisplayName(file)
+        };
+      } else if (file) {
+        const uploadedFilename = uploadedFilenameByIndex.get(p.fileIdx);
+        if (uploadedFilename) {
+          source = {
+            type: 'media',
+            filename: uploadedFilename,
+            label: getDesignerFileDisplayName(file)
+          };
+        }
+      }
+      return {
+        slot: idx + 1,
+        x: Number(p.x.toFixed(4)),
+        y: Number(p.y.toFixed(4)),
+        w: Number(p.w.toFixed(4)),
+        h: Number(p.h.toFixed(4)),
+        fit: p.fit || 'cover',
+        focusX: Number((Number.isFinite(p.focusX) ? p.focusX : 50).toFixed(2)),
+        focusY: Number((Number.isFinite(p.focusY) ? p.focusY : 50).toFixed(2)),
+        zoom: Number((Number.isFinite(p.zoom) ? p.zoom : 100).toFixed(2)),
+        source
+      };
+    });
+    const payload = {
+      name: trimmedName,
+      designer: {
+        orientation: ds.orientation,
+        split: ds.split,
+        stageSize: ds.stageSize,
+        placements
+      }
+    };
+    if (ds.editingMediaFilename) {
+      await api('PUT', `/api/media/${encodeURIComponent(ds.editingMediaFilename)}`, {
+        label: trimmedName,
+        designer: payload.designer
+      });
+      toast('콘텐츠 수정 완료');
+      await askImmediateContentRepublish();
+    } else if (ds.editingId) {
+      await api('PUT', `/api/designer-contents/${encodeURIComponent(ds.editingId)}`, payload);
+      toast('콘텐츠 수정 완료');
+      await askImmediateContentRepublish();
+    } else {
+      await api('POST', '/api/designer-contents', {
+        ...payload,
         groupId: state.currentGroup || null
       });
-    } catch (e) {
-      toast(`웹 콘텐츠 저장 실패: ${e.message}`, 'error');
+      toast('콘텐츠 등록 완료');
     }
-  }
-  closeUploadDesigner();
-  const uploadableFiles = ds.files.filter(f => !f.__web);
-  if (uploadableFiles.length) {
-    await uploadFiles(uploadableFiles);
-  } else {
-    toast('웹 콘텐츠 저장 완료');
-    loadMedia();
+    closeUploadDesigner();
+    await loadMedia();
+  } catch (e) {
+    if (uploadedHiddenFilenames.length) {
+      await Promise.allSettled(
+        uploadedHiddenFilenames.map((filename) => api('DELETE', `/api/media/${encodeURIComponent(filename)}`))
+      );
+    }
+    toast(e.message || '콘텐츠 저장 실패', 'error');
   }
 }
 
 async function deleteMedia(name) {
   const ok = await uiModalOpen({ title: '콘텐츠 삭제', message: '삭제하시겠습니까?' });
   if (ok) { await api('DELETE', `/api/media/${encodeURIComponent(name)}`); loadMedia(); }
+}
+
+async function editMedia(filename) {
+  const item = (state.mediaList || []).find(f => f.filename === filename);
+  if (!item) return;
+  if (item.type === 'web' && item.webKind === 'designer' && item.designer) {
+    openDesignerForEdit(item);
+    return;
+  }
+  if (item.type !== 'web') {
+    openDesignerForMediaEdit(item);
+    return;
+  }
+  const raw = await uiModalOpen({
+    title: '콘텐츠 수정',
+    message: item.type === 'web' ? '이름과 URL을 수정할 수 있습니다.' : '일반 파일은 표시 이름을 수정할 수 있습니다.',
+    contentEdit: {
+      name: item.label || (item.type === 'web' ? (item.label || '웹 콘텐츠') : item.filename.replace(/^\d+_/, '')),
+      url: item.webUrl || '',
+      showUrl: item.type === 'web'
+    },
+    okText: '저장',
+    cancelText: '취소'
+  });
+  if (!raw) return;
+  const name = String(raw.name || '').trim();
+  if (!name) {
+    toast('콘텐츠 이름을 입력하세요', 'error');
+    return;
+  }
+  if (item.type === 'web') {
+    const webId = String(filename || '').startsWith('web:') ? String(filename).slice(4) : '';
+    if (!webId) {
+      toast('웹 콘텐츠 식별자를 찾을 수 없습니다', 'error');
+      return;
+    }
+    await api('PUT', `/api/web-contents/${encodeURIComponent(webId)}`, {
+      name,
+      url: String(raw.url || '').trim()
+    });
+    await askImmediateContentRepublish();
+  } else {
+    await api('PUT', `/api/media/${encodeURIComponent(filename)}`, { label: name });
+    await askImmediateContentRepublish();
+  }
+  await loadMedia();
+  toast('콘텐츠 수정 완료');
 }
 
 // ════════════════════════════════════════
@@ -2511,9 +3371,11 @@ function renderPicker(groupId, btn) {
     return;
   }
   grid.innerHTML = files.map(f => {
-    const disp = f.filename.replace(/^\d+_/, '');
+    const disp = f.type === 'web'
+      ? (f.label || f.webUrl || '웹 콘텐츠')
+      : f.filename.replace(/^\d+_/, '');
     const thumb = f.type === 'web'
-      ? `<div style="color:#9fb3c8;font-size:18px;">🌐</div>`
+      ? `<div style="color:#9fb3c8;font-size:13px;font-weight:700;">${f.webKind === 'designer' ? 'LAYOUT' : 'WEB'}</div>`
       : f.type === 'video'
       ? `<div style="color:#888;font-size:22px;">▶</div>`
       : `<img src="/media/${f.filename}" loading="lazy" onerror="this.parentNode.innerHTML='<div style=color:#555;font-size:9px>미리보기없음</div>'">`;
@@ -3046,9 +3908,11 @@ function toggleChannelCalendarJump() {
 function applyChannelCalendarJump() {
   const y = parseInt(document.getElementById('channelCalendarYear')?.value, 10);
   const m = parseInt(document.getElementById('channelCalendarMonth')?.value, 10);
-  if (Number.isNaN(y) || Number.isNaN(m)) return;
-  const cur = parseDateOnly(state.channelCalendar.anchorDate);
-  const next = new Date(y, Math.max(0, Math.min(11, m - 1)), cur.getDate());
+  const d = parseInt(document.getElementById('channelCalendarDay')?.value, 10);
+  if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return;
+  const maxDay = new Date(y, Math.max(1, Math.min(12, m)), 0).getDate();
+  const safeDay = Math.max(1, Math.min(maxDay, d));
+  const next = new Date(y, Math.max(0, Math.min(11, m - 1)), safeDay);
   state.channelCalendar.anchorDate = toDateOnlyString(next);
   state.channelCalendar.jumpOpen = false;
   renderChannelCalendar();
@@ -3057,6 +3921,13 @@ function applyChannelCalendarJump() {
 function setChannelCalendarView(view) {
   if (!['month', 'week', 'day'].includes(view)) return;
   state.channelCalendar.view = view;
+  renderChannelCalendar();
+}
+
+function openChannelCalendarDay(dateStr) {
+  if (!dateStr) return;
+  state.channelCalendar.anchorDate = dateStr;
+  state.channelCalendar.view = 'day';
   renderChannelCalendar();
 }
 
@@ -3085,19 +3956,38 @@ function renderChannelCalendar() {
   const jumpWrap = document.getElementById('channelCalendarJump');
   const yearSel = document.getElementById('channelCalendarYear');
   const monthSel = document.getElementById('channelCalendarMonth');
+  const daySel = document.getElementById('channelCalendarDay');
   if (!channel || !body || !title || !range) return;
   title.textContent = `${channel.name} · 스케줄 캘린더`;
 
   const view = state.channelCalendar.view;
   const anchor = parseDateOnly(state.channelCalendar.anchorDate);
-  if (rangeBtn) rangeBtn.textContent = `${anchor.getFullYear()}년 ${anchor.getMonth() + 1}월`;
+  if (rangeBtn) {
+    rangeBtn.textContent = view === 'day'
+      ? `${anchor.getFullYear()}년 ${anchor.getMonth() + 1}월 ${anchor.getDate()}일`
+      : `${anchor.getFullYear()}년 ${anchor.getMonth() + 1}월`;
+  }
   if (jumpWrap) jumpWrap.style.display = state.channelCalendar.jumpOpen ? 'flex' : 'none';
-  if (yearSel && monthSel) {
+  if (yearSel && monthSel && daySel) {
     const currentYear = anchor.getFullYear();
     const years = [];
     for (let y = currentYear - 5; y <= currentYear + 5; y++) years.push(y);
     yearSel.innerHTML = years.map(y => `<option value="${y}" ${y===currentYear?'selected':''}>${y}년</option>`).join('');
     monthSel.innerHTML = Array.from({ length: 12 }, (_, i) => i + 1).map(m => `<option value="${m}" ${m===anchor.getMonth()+1?'selected':''}>${m}월</option>`).join('');
+    const daysInMonth = new Date(currentYear, anchor.getMonth() + 1, 0).getDate();
+    daySel.innerHTML = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+      .map(day => `<option value="${day}" ${day===anchor.getDate()?'selected':''}>${day}일</option>`).join('');
+    const syncDayOptions = () => {
+      const y = parseInt(yearSel.value, 10);
+      const m = parseInt(monthSel.value, 10);
+      if (Number.isNaN(y) || Number.isNaN(m)) return;
+      const max = new Date(y, m, 0).getDate();
+      const prev = parseInt(daySel.value, 10) || 1;
+      daySel.innerHTML = Array.from({ length: max }, (_, i) => i + 1)
+        .map(day => `<option value="${day}" ${day===Math.min(prev, max)?'selected':''}>${day}일</option>`).join('');
+    };
+    yearSel.onchange = syncDayOptions;
+    monthSel.onchange = syncDayOptions;
   }
   const monthBtn = document.getElementById('calViewMonthBtn');
   const weekBtn = document.getElementById('calViewWeekBtn');
@@ -3130,11 +4020,11 @@ function renderChannelCalendar() {
           const events = buildChannelEventsForDate(channel, d);
           const evt = events.slice(0, 3).map(ev => {
             const idx = registerChannelCalendarEvent(ev);
-            return `<div class="calendar-event clickable" onclick="openChannelCalendarEvent(${idx})" style="background:${escapeHtml(ev.color || '#5e81ac')};">${escapeHtml(ev.start.slice(0,5))} ${escapeHtml(ev.label)}</div>`;
+            return `<div class="calendar-event clickable" onclick="event.stopPropagation();openChannelCalendarEvent(${idx})" style="background:${escapeHtml(ev.color || '#5e81ac')};">${escapeHtml(ev.start.slice(0,5))} ${escapeHtml(ev.label)}</div>`;
           }).join('');
           const more = events.length > 3 ? `<div style="font-size:10px;color:var(--muted);">+${events.length - 3}개</div>` : '';
-          return `<div class="calendar-cell ${d.getMonth() !== anchor.getMonth() ? 'dim' : ''} ${ymd === today ? 'today' : ''}">
-            <div class="calendar-date">${d.getDate()}</div>
+          return `<div class="calendar-cell clickable ${d.getMonth() !== anchor.getMonth() ? 'dim' : ''} ${ymd === today ? 'today' : ''}" onclick="openChannelCalendarDay('${ymd}')">
+            <div class="calendar-date clickable">${d.getDate()}</div>
             ${evt}${more}
           </div>`;
         }).join('')}
@@ -3156,7 +4046,7 @@ function renderChannelCalendar() {
       const events = buildChannelEventsForDate(channel, d);
       cols.push(`
         <div class="calendar-week-col">
-          <div class="calendar-week-title">${['일','월','화','수','목','금','토'][d.getDay()]} · ${fmtMd(d)}</div>
+          <div class="calendar-week-title clickable" onclick="openChannelCalendarDay('${toDateOnlyString(d)}')">${['일','월','화','수','목','금','토'][d.getDay()]} · ${fmtMd(d)}</div>
           <div class="calendar-event-list">
             ${events.length ? events.map(ev => {
               const idx = registerChannelCalendarEvent(ev);
@@ -3804,17 +4694,21 @@ async function deleteChannelDef() {
 // 로그 관리 고도화
 let logData = [];
 let currentLogFilter = 'all';
+let currentLogPage = 1;
+const LOG_PAGE_SIZE = 50;
 
 async function loadLogs() {
   try {
-    const list = await api('GET', `/api/logs?limit=500&category=${currentLogFilter}`);
+    const list = await api('GET', `/api/logs?limit=5000&category=${currentLogFilter}`);
     logData = list;
+    currentLogPage = 1;
     renderLogs();
   } catch(e) { toast(e.message, 'error'); }
 }
 
 function setLogFilter(cat, btn) {
   currentLogFilter = cat;
+  currentLogPage = 1;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   loadLogs();
@@ -3823,15 +4717,21 @@ function setLogFilter(cat, btn) {
 function renderLogs() {
   const query = document.getElementById('logSearch').value.toLowerCase();
   const container = document.getElementById('logList');
+  const pageInfo = document.getElementById('logPageInfo');
   
   const filtered = logData.filter(l => {
     const text = JSON.stringify(l).toLowerCase();
     return text.includes(query);
   });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / LOG_PAGE_SIZE));
+  if (currentLogPage > totalPages) currentLogPage = totalPages;
+  if (currentLogPage < 1) currentLogPage = 1;
+  const start = (currentLogPage - 1) * LOG_PAGE_SIZE;
+  const paged = filtered.slice(start, start + LOG_PAGE_SIZE);
 
   const catLabels = { stream:'스트림', control:'제어', schedule:'스케줄', system:'시스템' };
 
-  container.innerHTML = filtered.map(l => {
+  container.innerHTML = paged.map(l => {
     const { ts, category, event, ...rest } = l;
     const details = Object.entries(rest).map(([k,v]) => `${k}=${JSON.stringify(v)}`).join(' · ');
     return `
@@ -3843,6 +4743,42 @@ function renderLogs() {
       </div>
     `;
   }).join('') || '<div style="padding:20px; color:#888;">일치하는 로그가 없습니다.</div>';
+  if (pageInfo) {
+    pageInfo.textContent = `총 ${filtered.length}줄 · ${currentLogPage}/${totalPages} 페이지 · 페이지당 ${LOG_PAGE_SIZE}줄`;
+  }
+}
+
+function changeLogPage(delta) {
+  currentLogPage += delta;
+  renderLogs();
+}
+
+function toLocalDateTimeInputValue(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+async function openLogDownloadModal() {
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+  const raw = await uiModalOpen({
+    title: '로그 다운로드',
+    message: '다운로드할 기간을 선택하세요.',
+    logDownload: {
+      from: toLocalDateTimeInputValue(weekAgo),
+      to: toLocalDateTimeInputValue(now)
+    },
+    okText: '다운로드',
+    cancelText: '취소'
+  });
+  if (!raw) return;
+  const params = new URLSearchParams();
+  params.set('category', currentLogFilter);
+  if (raw.from) params.set('from', new Date(raw.from).toISOString());
+  if (raw.to) params.set('to', new Date(raw.to).toISOString());
+  window.location.href = `/api/logs/download?${params.toString()}`;
 }
 
 async function loadServerInfo() {
@@ -3887,6 +4823,9 @@ async function deleteDisplay(id) {
 
 applyTheme();
 switchTab('dashboard');
+window.addEventListener('resize', () => {
+  if (state.uploadDesigner?.open) fitDesignerStageToViewport();
+});
 setInterval(loadServerInfo, 10000);
 setInterval(() => {
   if (document.getElementById('tab-dashboard').classList.contains('active')) {

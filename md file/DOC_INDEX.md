@@ -25,6 +25,12 @@
 2. `md file/API_REFERENCE.md`
 3. 필요 시 `md file/PROJECT_STATUS.md`
 
+### 콘텐츠 디자이너 / 배치형 콘텐츠 / 날씨·웹 콘텐츠
+
+1. `md file/UI_GUIDE.md`
+2. `md file/API_REFERENCE.md`
+3. `md file/PROJECT_STATUS.md`
+
 ### API / 데이터 구조 확인
 
 1. `md file/API_REFERENCE.md`
@@ -40,6 +46,18 @@
 
 1. `md file/PROJECT_STATUS.md`
 2. 필요 시 `md file/ERROR_LOG.md`
+
+### 운영 데이터 이전 / 배포 폴더 교체 / 스케줄 보존
+
+1. `md file/OPERATIONS.md`
+2. `md file/PROJECT_STATUS.md`
+3. 필요 시 `md file/ERROR_LOG.md`
+
+### 로그 확인 / 보존 / 다운로드
+
+1. `md file/OPERATIONS.md`
+2. `md file/API_REFERENCE.md`
+3. 필요 시 `md file/ERROR_LOG.md`
 
 ### 대규모 라이브/동기 재생 검증
 

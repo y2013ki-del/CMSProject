@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Designer Content</title>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: "Segoe UI", "Malgun Gothic", system-ui, sans-serif; }
+    body { display: flex; align-items: center; justify-content: center; }
+    #stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      overflow: hidden;
+    }
+    .slot {
+      position: absolute;
+      overflow: hidden;
+      background: #000;
+    }
+    .slot iframe,
+    .slot img,
+    .slot video {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #000;
+    }
+    .slot video {
+      pointer-events: none;
+    }
+    .empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255,255,255,.28);
+      font-size: 14px;
+      letter-spacing: .08em;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <script>
+    function q(name) {
+      var match = location.search.match(new RegExp('[?&]' + name + '=([^&]*)'));
+      return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : '';
+    }
+
+    function esc(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function fitModeStyle(source, placement) {
+      var fit = placement.fit || 'cover';
+      var focusX = Number.isFinite(placement.focusX) ? placement.focusX : 50;
+      var focusY = Number.isFinite(placement.focusY) ? placement.focusY : 50;
+      var zoom = Number.isFinite(placement.zoom) ? placement.zoom : 100;
+      return 'object-fit:' + fit + ';object-position:' + focusX + '% ' + focusY + '%;transform:scale(' + (zoom / 100).toFixed(3) + ');transform-origin:' + focusX + '% ' + focusY + '%;';
+    }
+
+    function render(designer) {
+      var stage = document.getElementById('stage');
+      if (!stage) return;
+      var placements = Array.isArray(designer && designer.placements) ? designer.placements : [];
+      stage.innerHTML = placements.map(function (placement) {
+        var left = ((placement.x || 0) * 100).toFixed(4) + '%';
+        var top = ((placement.y || 0) * 100).toFixed(4) + '%';
+        var width = ((placement.w || 0) * 100).toFixed(4) + '%';
+        var height = ((placement.h || 0) * 100).toFixed(4) + '%';
+        var source = placement.source || null;
+        var inner = '<div class="empty">EMPTY</div>';
+        if (source && source.type === 'media') {
+          if (source.mediaType === 'video') {
+            inner = '<video autoplay muted loop playsinline src="/media/' + encodeURIComponent(source.filename || '') + '" style="' + fitModeStyle(source, placement) + '"></video>';
+          } else {
+            inner = '<img src="/media/' + encodeURIComponent(source.filename || '') + '" alt="' + esc(source.label || source.filename || '') + '" style="' + fitModeStyle(source, placement) + '">';
+          }
+        } else if (source && source.type === 'web') {
+          inner = '<iframe src="' + esc(source.url || '') + '" allowfullscreen></iframe>';
+        }
+        return '<div class="slot" style="left:' + left + ';top:' + top + ';width:' + width + ';height:' + height + ';">' + inner + '</div>';
+      }).join('');
+    }
+
+    function loadDesignerContent() {
+      var id = q('id');
+      var media = q('media');
+      var url = id
+        ? '/api/designer-contents/' + encodeURIComponent(id) + '/render'
+        : (media ? '/api/designer-media/' + encodeURIComponent(media) + '/render' : '');
+      if (!url) return;
+      fetch(url)
+        .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error('load_failed')); })
+        .then(function (data) { render(data.designer || null); })
+        .catch(function () {
+          document.getElementById('stage').innerHTML = '<div class="empty">CONTENT ERROR</div>';
+        });
+    }
+
+    loadDesignerContent();
+  </script>
+</body>
+</html>

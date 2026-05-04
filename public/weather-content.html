@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Weather Content</title>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --line: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+    }
+    :root[data-theme="dark"] {
+      --bg: #0f172a;
+      --card: #111827;
+      --line: #263243;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; background: var(--bg); color: var(--text); font-family: "Pretendard","Noto Sans KR",sans-serif; overflow: hidden; }
+    .root { width: 100%; height: 100%; padding: clamp(8px, 1.2vw, 16px); }
+    .panel {
+      width: 100%;
+      height: 100%;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .weekly-wrap { display: grid; grid-template-columns: minmax(150px, 24%) 1fr; height: 100%; min-height: 0; }
+    .now {
+      border-right: 1px solid var(--line);
+      padding: clamp(10px, 1.2vw, 18px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      min-height: 0;
+    }
+    .loc { font-size: clamp(11px, .95vw, 22px); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .loc-inline { font-size: clamp(11px, .92vw, 18px); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .temp { font-size: clamp(34px, 4.5vw, 94px); font-weight: 800; line-height: .95; }
+    .now-main { display:flex; align-items:center; gap: clamp(8px, 1vw, 18px); }
+    .now-main-inline { display:flex; align-items:center; gap: clamp(8px, 1vw, 14px); min-width:0; }
+    .now-icon { font-size: clamp(26px, 3vw, 56px); line-height: 1; }
+    .desc { font-size: clamp(12px, 1vw, 24px); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .week-strip {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(100px, 1fr));
+      gap: 0;
+      overflow: hidden;
+    }
+    .day {
+      padding: clamp(8px, 1vw, 14px);
+      border-left: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .d1 { font-size: clamp(10px, .8vw, 18px); color: var(--muted); font-weight: 700; }
+    .d2 { font-size: clamp(20px, 2.1vw, 48px); line-height: 1; }
+    .d3 { font-size: clamp(12px, .95vw, 22px); font-weight: 700; }
+    .d4 { font-size: clamp(11px, .8vw, 18px); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-align: center; }
+    .hourly-strip {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(78px, 1fr));
+      gap: 0;
+      overflow: hidden;
+    }
+    .hour {
+      border-left: 1px solid var(--line);
+      padding: clamp(8px, 1vw, 14px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .h1 { font-size: clamp(11px, .9vw, 20px); color: var(--muted); font-weight: 700; }
+    .h2 { font-size: clamp(18px, 1.9vw, 40px); line-height: 1; }
+    .h3 { font-size: clamp(14px, 1.1vw, 24px); font-weight: 800; }
+    .h4 { font-size: clamp(10px, .78vw, 16px); color: var(--muted); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+    .single-wrap {
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 0;
+      min-height: 0;
+    }
+    .single-head {
+      padding: clamp(12px, 1.4vw, 22px);
+      border-bottom: 1px solid var(--line);
+    }
+    .single-title { font-size: clamp(16px, 1.4vw, 26px); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .single-main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(12px, 2vw, 28px);
+      min-height: 0;
+    }
+    .single-icon { font-size: clamp(48px, 9vw, 132px); line-height: 1; }
+    .single-temp { font-size: clamp(54px, 10vw, 170px); font-weight: 800; line-height: .92; }
+    .single-foot {
+      border-top: 1px solid var(--line);
+      padding: clamp(10px, 1.1vw, 18px);
+      text-align: center;
+      color: var(--muted);
+      font-size: clamp(13px, 1.1vw, 22px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .empty { margin: auto; color: var(--muted); font-size: clamp(13px, 1vw, 20px); text-align: center; }
+    body.portrait .weekly-wrap { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    body.portrait .now { border-right: none; border-bottom: 1px solid var(--line); }
+    body.portrait .week-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: minmax(0, 1fr);
+      height: 100%;
+      overflow: hidden;
+    }
+    body.portrait .hourly-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: minmax(0, 1fr);
+      height: 100%;
+      overflow: hidden;
+    }
+    body.portrait .loc { font-size: clamp(12px, 1.2vw, 18px); }
+    body.portrait .temp { font-size: clamp(36px, 6vw, 72px); }
+    body.portrait .d4,
+    body.portrait .h4 { white-space: normal; }
+    body.portrait .now-main { flex-direction: column; align-items: flex-start; gap: 4px; }
+    body.portrait .now-main-inline { flex-direction: column; align-items: flex-start; gap: 2px; }
+    body.portrait .desc { white-space: normal; }
+    body.short .now { padding: 6px 10px; gap: 2px; }
+    body.short .loc { font-size: 12px; }
+    body.short .temp { font-size: 44px; }
+    body.short .now-icon { font-size: 28px; }
+    body.short .desc { display: none; }
+    body.short .day, body.short .hour { padding: 4px 4px; gap: 1px; }
+    body.short .d1, body.short .h1 { font-size: 12px; }
+    body.short .d2, body.short .h2 { font-size: 20px; }
+    body.short .d3, body.short .h3 { font-size: 12px; line-height: 1; }
+    body.short .d4, body.short .h4 { display: none; }
+    body.short .week-strip { grid-template-columns: repeat(6, minmax(54px, 1fr)); }
+    body.short .hourly-strip { grid-template-columns: repeat(6, minmax(54px, 1fr)); }
+    body.portrait.short .weekly-wrap { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    body.portrait.short .week-strip,
+    body.portrait.short .hourly-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: minmax(0, 1fr);
+      height: 100%;
+      overflow: hidden;
+    }
+    body.portrait.short .single-icon { font-size: 64px; }
+    body.portrait.short .single-temp { font-size: 86px; }
+    body.portrait.short .single-foot { font-size: 14px; }
+    body.tiny .weekly-wrap { grid-template-columns: minmax(120px, 28%) 1fr; }
+    body.tiny .temp { font-size: clamp(24px, 4vw, 42px); }
+    body.tiny .desc { display: none; }
+    body.tiny .week-strip { grid-template-columns: repeat(6, minmax(64px, 1fr)); }
+    body.tiny .d1 { font-size: clamp(9px, .8vw, 11px); }
+    body.tiny .d2 { font-size: clamp(14px, 1.4vw, 18px); }
+    body.tiny .d3 { font-size: clamp(10px, .85vw, 12px); }
+    body.tiny .d4 { display: none; }
+    body.tiny .hourly-strip { grid-template-columns: repeat(6, minmax(64px, 1fr)); }
+    body.tiny .h4 { display: none; }
+  </style>
+</head>
+<body>
+  <div class="root">
+    <div class="panel" id="weatherPanel"></div>
+  </div>
+  <script>
+    const qs = new URLSearchParams(location.search);
+    const locationName = (qs.get('location') || '서울').trim();
+    const locationLabel = (qs.get('label') || '').trim();
+    const latParam = Number(qs.get('lat'));
+    const lonParam = Number(qs.get('lon'));
+    const tzParam = (qs.get('tz') || '').trim();
+    const layoutParam = (qs.get('layout') || '').toLowerCase();
+    const viewRaw = (qs.get('view') || 'weekly').toLowerCase();
+    const view = ['single', 'weekly', 'hourly'].includes(viewRaw) ? viewRaw : 'weekly';
+    const theme = (qs.get('theme') || 'light').toLowerCase() === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    const panelEl = document.getElementById('weatherPanel');
+
+    function codeText(code) {
+      const map = { 0:'맑음',1:'대체로 맑음',2:'약간 흐림',3:'흐림',45:'안개',48:'짙은 안개',51:'약한 이슬비',53:'이슬비',55:'강한 이슬비',61:'약한 비',63:'비',65:'강한 비',71:'약한 눈',73:'눈',75:'강한 눈',80:'소나기',81:'강한 소나기',82:'매우 강한 소나기',95:'뇌우',96:'우박 동반 뇌우',99:'강한 우박 뇌우' };
+      return map[code] || '정보 없음';
+    }
+    function codeIcon(code) {
+      if (code === 0) return '☀️';
+      if ([1,2].includes(code)) return '🌤️';
+      if ([3,45,48].includes(code)) return '☁️';
+      if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return '🌧️';
+      if (code >= 71 && code <= 77) return '❄️';
+      if (code >= 95) return '⛈️';
+      return '🌡️';
+    }
+    async function fetchJson(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+    function applyDensity() {
+      document.body.classList.toggle('tiny', window.innerHeight < 260 || window.innerWidth < 540);
+      document.body.classList.toggle('short', window.innerHeight < 300);
+      const forcePortrait = layoutParam === 'portrait';
+      const autoPortrait = window.innerHeight > window.innerWidth;
+      document.body.classList.toggle('portrait', forcePortrait || autoPortrait);
+    }
+    function renderWeekly(data, locLabel) {
+      const nowTemp = Math.round(data?.current?.temperature_2m ?? data?.hourly?.temperature_2m?.[0] ?? 0);
+      const nowCode = data?.current?.weather_code ?? data?.hourly?.weathercode?.[0] ?? 3;
+      const nowFeel = Math.round(data?.current?.apparent_temperature ?? nowTemp);
+      const days = data?.daily?.time || [];
+      const maxs = data?.daily?.temperature_2m_max || [];
+      const mins = data?.daily?.temperature_2m_min || [];
+      const codes = data?.daily?.weathercode || [];
+      const strip = days.slice(1, 7).map((d, i) => {
+        const idx = i + 1;
+        const dow = new Date(d).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+        const dateNum = new Date(d).getDate();
+        const max = Number.isFinite(maxs[idx]) ? Math.round(maxs[idx]) : '--';
+        const min = Number.isFinite(mins[idx]) ? Math.round(mins[idx]) : '--';
+        const code = codes[idx];
+        return `<div class="day">
+          <div class="d1">${dow} ${dateNum}</div>
+          <div class="d2">${codeIcon(code)}</div>
+          <div class="d3">↑ ${max}° ↓ ${min}°</div>
+          <div class="d4">${codeText(code)}</div>
+        </div>`;
+      }).join('');
+      panelEl.innerHTML = `<div class="weekly-wrap">
+        <div class="now">
+          <div class="now-main-inline">
+            <div class="now-icon">${codeIcon(nowCode)}</div>
+            <div class="temp">${nowTemp}°</div>
+            <div class="loc-inline">${locLabel}</div>
+          </div>
+          <div class="desc">${codeText(nowCode)} | 체감 ${nowFeel}°</div>
+        </div>
+        <div class="week-strip">${strip}</div>
+      </div>`;
+    }
+    function renderHourly(data, locLabel) {
+      const times = data?.hourly?.time || [];
+      const temps = data?.hourly?.temperature_2m || [];
+      const codes = data?.hourly?.weathercode || [];
+      const nowTemp = Math.round(data?.current?.temperature_2m ?? temps?.[0] ?? 0);
+      const nowCode = data?.current?.weather_code ?? codes?.[0] ?? 3;
+      const nowFeel = Math.round(data?.current?.apparent_temperature ?? nowTemp);
+      const now = Date.now();
+      const start = Math.max(0, times.findIndex((t) => new Date(t).getTime() >= now));
+      const end = Math.min(times.length, start + 6);
+      const items = [];
+      for (let i = start; i < end; i++) {
+        const t = Number.isFinite(temps[i]) ? Math.round(temps[i]) : '--';
+        const h = new Date(times[i]).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+        items.push(`<div class="hour">
+          <div class="h1">${h}</div>
+          <div class="h2">${codeIcon(codes[i])}</div>
+          <div class="h3">${t}°</div>
+          <div class="h4">${codeText(codes[i])}</div>
+        </div>`);
+      }
+      panelEl.innerHTML = `<div class="weekly-wrap">
+        <div class="now">
+          <div class="now-main-inline">
+            <div class="now-icon">${codeIcon(nowCode)}</div>
+            <div class="temp">${nowTemp}°</div>
+            <div class="loc-inline">${locLabel}</div>
+          </div>
+          <div class="desc">${codeText(nowCode)} | 체감 ${nowFeel}°</div>
+        </div>
+        <div class="hourly-strip">${items.join('')}</div>
+      </div>`;
+    }
+    function renderSingle(data, locLabel) {
+      const nowTemp = Math.round(data?.current?.temperature_2m ?? data?.hourly?.temperature_2m?.[0] ?? 0);
+      const nowCode = data?.current?.weather_code ?? data?.hourly?.weathercode?.[0] ?? 3;
+      const nowFeel = Math.round(data?.current?.apparent_temperature ?? nowTemp);
+      panelEl.innerHTML = `<div class="single-wrap">
+        <div class="single-head"><div class="single-title">📍 ${locLabel}</div></div>
+        <div class="single-main">
+          <div class="single-icon">${codeIcon(nowCode)}</div>
+          <div class="single-temp">${nowTemp}°</div>
+        </div>
+        <div class="single-foot">${codeText(nowCode)} | 체감 ${nowFeel}°</div>
+      </div>`;
+    }
+    function renderFallback() {
+      panelEl.innerHTML = `<div class="empty">날씨 데이터를 불러오지 못했습니다.</div>`;
+    }
+    async function run() {
+      try {
+        let lat = latParam;
+        let lon = lonParam;
+        let tz = tzParam;
+        let locLabel = locationLabel || locationName;
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+          const geo = await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locationName)}&count=1&language=ko`);
+          const hit = geo?.results?.[0];
+          if (!hit) throw new Error('geo_not_found');
+          lat = hit.latitude;
+          lon = hit.longitude;
+          tz = hit.timezone || 'auto';
+          locLabel = `${hit.name}${hit.admin1 ? ', ' + hit.admin1 : ''}${hit.country ? ', ' + hit.country : ''}`;
+        } else {
+          tz = tz || 'auto';
+        }
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&timezone=${encodeURIComponent(tz)}&current=temperature_2m,apparent_temperature,weather_code&daily=weathercode,temperature_2m_max,temperature_2m_min&hourly=temperature_2m,weathercode&temperature_unit=celsius`;
+        const wx = await fetchJson(url);
+        if (view === 'single') renderSingle(wx, locLabel);
+        else if (view === 'hourly') renderHourly(wx, locLabel);
+        else renderWeekly(wx, locLabel);
+      } catch (e) {
+        renderFallback();
+      }
+    }
+
+    applyDensity();
+    window.addEventListener('resize', applyDensity);
+    run();
+    setInterval(run, 10 * 60 * 1000);
+  </script>
+</body>
+</html>
