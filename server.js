@@ -13,7 +13,7 @@ const WebSocket = require('ws');
 // ═══════════════════════════════════════════════
 //  설정
 // ═══════════════════════════════════════════════
-const PORT     = 8080;
+const PORT     = Number(process.env.PORT) || 8080;
 const PROXY_IP = '12.23.67.245';
 const MDC_ID   = 0x01; // 삼성 디스플레이 Device ID (현재 장비 설정값: 1)
 const WOL_BROADCAST_IP = process.env.WOL_BROADCAST_IP || '255.255.255.255'; // 필요 시 예: 12.23.68.255
