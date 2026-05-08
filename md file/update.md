@@ -205,4 +205,3 @@ git show HEAD -- "md file/update.md"
 - 웰컴보드 콘텐츠 등록의 "PC 해상도 불러오기"는 `output.rect`가 아니라 `output.canvas` 전체 해상도를 stageSize로 적용
 - CMS 기기 카드의 웰컴보드 출력 정보는 콘텐츠 영역이 아닌 송출 화면 해상도로 표시
 - 웰컴보드 PC 신규 등록 기본 예시 해상도를 3840x2160으로 변경하고, 기존 테스트 기기 등록 데이터 초기화
-- GitHub 연동 호스팅에서 실행할 수 있도록 서버 포트를 `process.env.PORT` 우선으로 변경하고 Render 배포 설정을 추가
