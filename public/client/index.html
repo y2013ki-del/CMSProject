@@ -19,7 +19,11 @@
 </head>
 <body>
     <div id="player-container">
-        <div id="ready-msg">CMS Player Ready</div>
+        <div id="ready-msg">
+          <div style="font-size:18px; color:#666; margin-bottom:8px;">CMS Player Ready</div>
+          <div id="ws-status" style="font-size:13px; color:#555;"></div>
+          <div id="duid-label" style="font-size:12px; color:#444; margin-top:6px;"></div>
+        </div>
         <video id="v1" playsinline style="display:none; z-index:2;"></video>
         <video id="v2" playsinline style="display:none; z-index:1;"></video>
         <img id="i1" style="display:none; z-index:2;">
@@ -90,12 +94,16 @@
         let activeStreamUrl = '';
         let activePlaybackProfile = 'balanced';
         let syncPlayTargetEpochMs = null;
+        let activeRenderKey = null;
+        let activeScheduleSignature = '';
         let syncWaitRafId = null;
         let avplayPrepareTimer = null;
         let avplayPreparedAtMs = null;
         let avplayLastPlaytimeMs = null;
         let streamHealthTimer = null;
         let heartbeatTimer = null;
+        const PLAYER_CONTRACT_VERSION = 1;
+        const PLAYER_APP_VERSION = 'web-client-v1';
         const HEARTBEAT_BASE_MS = 10000;
         const HEARTBEAT_JITTER_MS = 2000;
         const playerStatus = {
@@ -116,13 +124,39 @@
             return Math.max(3000, Math.round(HEARTBEAT_BASE_MS + jitter));
         }
 
+        function getScreenInfo() {
+            return {
+                width: window.screen?.width || window.innerWidth,
+                height: window.screen?.height || window.innerHeight,
+                scaleFactor: window.devicePixelRatio || 1
+            };
+        }
+
+        function getOutputRect() {
+            return {
+                x: 0,
+                y: 0,
+                width: window.innerWidth,
+                height: window.innerHeight
+            };
+        }
+
+        function getPlayerAppType() {
+            if (window.webapis || window.tizen) return 'signage';
+            return 'pc_web';
+        }
+
         function sendHeartbeat(force) {
             if (!ws || ws.readyState !== WebSocket.OPEN) return;
             const payload = {
                 type: 'heartbeat',
+                playerContractVersion: PLAYER_CONTRACT_VERSION,
                 ts: Date.now(),
                 force: !!force,
                 player: {
+                    playerContractVersion: PLAYER_CONTRACT_VERSION,
+                    appType: getPlayerAppType(),
+                    appVersion: PLAYER_APP_VERSION,
                     mode: runtimeMode,
                     playback: playerStatus.playback,
                     currentType: playerStatus.currentType,
@@ -134,7 +168,10 @@
                     channelName: playerStatus.channelName,
                     itemIndex: currentItems.length ? (Math.max(0, currentIndex - 1) % currentItems.length) : null,
                     queueSize: currentItems.length,
-                    lastError: playerStatus.lastError
+                    lastError: playerStatus.lastError,
+                    ready: playerStatus.playback !== 'idle' && playerStatus.playback !== 'error',
+                    screen: getScreenInfo(),
+                    output: getOutputRect()
                 }
             };
             ws.send(JSON.stringify(payload));
@@ -158,10 +195,59 @@
             if (forceHeartbeat) sendHeartbeat(true);
         }
 
+        function getItemRenderKey(item) {
+            if (!item) return '';
+            if (item.type === 'web') return `web:${item.webUrl || item.filename || ''}`;
+            return `${item.type || 'unknown'}:${item.filename || ''}`;
+        }
+
+        function buildScheduleSignature(items) {
+            return JSON.stringify((Array.isArray(items) ? items : []).map((item) => ({
+                type: item?.type || '',
+                filename: item?.filename || '',
+                webUrl: item?.webUrl || '',
+                duration: item?.duration || 0,
+                useNative: !!item?.useNative,
+                muted: !!item?.muted,
+                alwaysOn: item?.alwaysOn === true,
+                startAt: item?.startAt || '',
+                endAt: item?.endAt || ''
+            })));
+        }
+
+        function scheduleAdvanceForItem(item) {
+            clearTimeout(timer);
+            if (!item) return;
+            if (item.type === 'video') {
+                if (countAvailableItems() === 1) return;
+                if (!item.useNative && item.duration > 0) {
+                    timer = setTimeout(playNext, item.duration * 1000);
+                }
+                return;
+            }
+            const fallback = 10;
+            timer = setTimeout(playNext, (item.duration || fallback) * 1000);
+        }
+
+        function countAvailableItems() {
+            return currentItems.reduce((count, item) => count + (isAvailable(item) ? 1 : 0), 0);
+        }
+
+        function setWsStatus(text) {
+            const el = document.getElementById('ws-status');
+            if (el) el.textContent = text;
+        }
+
         function connectWS() {
             ws = new WebSocket(`${window.location.protocol==='https:'?'wss:':'ws:'}//${serverHost}/ws/player?duid=${duid}`);
+
+            const duidEl = document.getElementById('duid-label');
+            if (duidEl) duidEl.textContent = `기기 ID: ${duid}`;
+            setWsStatus('서버 연결 중...');
+
             ws.onopen = () => {
                 setStatusOverlayText(`Online: ${duid}`);
+                setWsStatus('연결됨 — CMS에서 이 기기에 채널을 할당하면 재생이 시작됩니다.');
                 sendHeartbeat(true);
                 scheduleHeartbeat();
             };
@@ -170,12 +256,25 @@
                 if (data.type === 'update') {
                     console.log("Schedule Update", data.items);
                     if (runtimeMode !== 'schedule') return;
+                    const nextItems = data.items || [];
+                    const nextSignature = buildScheduleSignature(nextItems);
+                    if (nextSignature === activeScheduleSignature && playerStatus.channelId === (data.channel || null)) {
+                        currentItems = nextItems;
+                        setPlaybackState(playerStatus.playback || 'playing', {
+                            channelId: data.channel || null,
+                            channelName: data.name || null,
+                            lastError: null
+                        }, true);
+                        return;
+                    }
                     // [보강] 기존 비디오 강제 중지 및 타이머 제거
                     const v1 = document.getElementById('v1');
                     if (v1) { v1.pause(); v1.src = ""; }
                     clearTimeout(timer);
                     
-                    currentItems = data.items || [];
+                    currentItems = nextItems;
+                    activeScheduleSignature = nextSignature;
+                    activeRenderKey = null;
                     currentIndex = 0;
                     setPlaybackState('ready', {
                         channelId: data.channel || null,
@@ -198,6 +297,7 @@
             };
             ws.onclose = () => {
                 setStatusOverlayText('Offline (Retrying...)');
+                setWsStatus('연결 끊김 — 5초 후 재연결 시도...');
                 clearTimeout(heartbeatTimer);
                 setTimeout(connectWS, 5000);
             };
@@ -205,6 +305,8 @@
 
         function stopSchedulePlayback() {
             clearTimeout(timer);
+            activeRenderKey = null;
+            activeScheduleSignature = '';
             const v1 = document.getElementById('v1');
             const i1 = document.getElementById('i1');
             const webFrame = document.getElementById('webFrame');
@@ -396,7 +498,8 @@
 
         // 특정 아이템이 현재 재생 가능한 기간인지 확인
         function isAvailable(item) {
-            if (!item.startAt && !item.endAt) return true;
+            if (item?.alwaysOn === true) return true;
+            if (!item.startAt && !item.endAt) return item?.alwaysOn === undefined;
             const now = Date.now();
             if (item.startAt && new Date(item.startAt).getTime() > now) return false;
             if (item.endAt && new Date(item.endAt).getTime() < now) return false;
@@ -430,6 +533,42 @@
             const i1 = document.getElementById('i1');
             const webFrame = document.getElementById('webFrame');
             const mediaUrl = `${window.location.protocol}//${serverHost}/media/${item.filename}`;
+            const renderKey = getItemRenderKey(item);
+            const singleAvailableItem = countAvailableItems() === 1;
+
+            if (singleAvailableItem && renderKey && renderKey === activeRenderKey) {
+                if (item.type === 'web') {
+                    v1.pause();
+                    v1.style.display = 'none';
+                    i1.style.display = 'none';
+                    webFrame.style.display = 'block';
+                    setPlaybackState('playing', { currentType: 'web', currentFilename: item.label || item.filename || null, lastError: null }, true);
+                    scheduleAdvanceForItem(item);
+                    return;
+                }
+                if (item.type === 'video') {
+                i1.style.display = 'none';
+                webFrame.style.display = 'none';
+                webFrame.src = 'about:blank';
+                v1.style.display = 'block';
+                v1.muted = !!item.muted;
+                v1.volume = item.muted ? 0 : 1;
+                if (v1.ended || !v1.src) {
+                    v1.currentTime = 0;
+                    v1.play().catch(playNext);
+                }
+                    setPlaybackState('playing', { currentType: 'video', currentFilename: item.filename || null, lastError: null }, true);
+                    scheduleAdvanceForItem(item);
+                    return;
+                }
+                v1.style.display = 'none';
+                webFrame.style.display = 'none';
+                webFrame.src = 'about:blank';
+                i1.style.display = 'block';
+                setPlaybackState('playing', { currentType: 'image', currentFilename: item.filename || null, lastError: null }, true);
+                scheduleAdvanceForItem(item);
+                return;
+            }
 
             if (item.type === 'web') {
                 v1.pause();
@@ -437,8 +576,9 @@
                 i1.style.display = 'none';
                 webFrame.style.display = 'block';
                 webFrame.src = item.webUrl || '';
+                activeRenderKey = renderKey;
                 setPlaybackState('playing', { currentType: 'web', currentFilename: item.label || item.filename || null, lastError: null }, true);
-                timer = setTimeout(playNext, ((item.duration || 15) * 1000));
+                scheduleAdvanceForItem(item);
                 preloadNext();
                 return;
             }
@@ -449,8 +589,8 @@
             if (item.type === 'video') {
                 i1.style.display = 'none';
                 v1.style.display = 'block';
-                v1.muted = false;
-                v1.volume = 1;
+                v1.muted = !!item.muted;
+                v1.volume = item.muted ? 0 : 1;
                 v1.src = mediaUrl;
                 v1.onended = playNext;
                 v1.onerror = () => {
@@ -463,12 +603,9 @@
                     playNext();
                 };
                 v1.play().catch(playNext);
+                activeRenderKey = renderKey;
                 setPlaybackState('playing', { currentType: 'video', currentFilename: item.filename || null, lastError: null }, true);
-                
-                // [개선] 만약 수동 시간이 설정되어 있다면 (useNativeDuration이 아닐 때)
-                if (!item.useNative && item.duration > 0) {
-                    timer = setTimeout(playNext, item.duration * 1000);
-                }
+                scheduleAdvanceForItem(item);
             } else {
                 v1.style.display = 'none';
                 i1.style.display = 'block';
@@ -481,8 +618,9 @@
                     }, true);
                     playNext();
                 };
+                activeRenderKey = renderKey;
                 setPlaybackState('playing', { currentType: 'image', currentFilename: item.filename || null, lastError: null }, true);
-                timer = setTimeout(playNext, (item.duration || 10) * 1000);
+                scheduleAdvanceForItem(item);
             }
 
             // [핵심] 다음 아이템 프리로딩 로직

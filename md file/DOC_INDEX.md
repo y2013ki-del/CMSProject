@@ -23,7 +23,8 @@
 
 1. `md file/UI_GUIDE.md`
 2. `md file/API_REFERENCE.md`
-3. 필요 시 `md file/PROJECT_STATUS.md`
+3. 플레이어 계약 변경 시 `md file/PLAYER_CONTRACT.md`
+4. 필요 시 `md file/PROJECT_STATUS.md`
 
 ### 콘텐츠 디자이너 / 배치형 콘텐츠 / 날씨·웹 콘텐츠
 
@@ -34,7 +35,8 @@
 ### API / 데이터 구조 확인
 
 1. `md file/API_REFERENCE.md`
-2. 필요 시 `md file/OPERATIONS.md`
+2. 플레이어 메시지/상태 보고는 `md file/PLAYER_CONTRACT.md`
+3. 필요 시 `md file/OPERATIONS.md`
 
 ### TV 제어 / MDC / WoL / 온라인 판정
 
@@ -64,6 +66,17 @@
 1. `md file/VALIDATION_MATRIX.md`
 2. 필요 시 `md file/ERROR_LOG.md`
 3. 필요 시 `md file/UI_GUIDE.md`, `md file/API_REFERENCE.md`
+
+### 웰컴보드용 PC 플레이어 분리 / 고해상도 송출 방향
+
+1. `md file/PROJECT_STATUS.md`
+2. `md file/PLAYER_CONTRACT.md`
+3. 필요 시 `md file/API_REFERENCE.md`
+4. 필요 시 `md file/VALIDATION_MATRIX.md`
+
+### 코드 정합성 검토 / 버그 수정 우선순위 확인
+
+1. `md file/CODE_REVIEW.md` — P0~P2 항목별 상태 관리
 
 ## 문서 작성 규칙
 

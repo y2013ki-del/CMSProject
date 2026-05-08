@@ -30,6 +30,7 @@ const ENABLE_CCTV = process.env.ENABLE_CCTV === '1';
 const HUNG_START_MS    = 30000;
 const HUNG_NO_FRAME_MS = 60000;
 const PLAYER_HEARTBEAT_STALE_MS = 35000;
+const PLAYER_CONTRACT_VERSION = 1;
 const PLAYBACK_PROFILE_DEFAULT = 'balanced';
 const STREAM_SYNC_LEAD_MS = 5000;
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2시간
@@ -66,9 +67,43 @@ function loadJson(file, defaultVal) {
   if (!fs.existsSync(file)) return defaultVal;
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return defaultVal; }
 }
-function saveJson(file, data) {
-  fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+function cloneJsonValue(value) {
+  return JSON.parse(JSON.stringify(value));
 }
+function saveJson(file, data) {
+  const dir = path.dirname(file);
+  const base = path.basename(file);
+  const tmp = path.join(dir, `.${base}.${process.pid}.${Date.now()}.tmp`);
+  const payload = JSON.stringify(data, null, 2);
+  try {
+    fs.writeFileSync(tmp, payload, 'utf8');
+    fs.renameSync(tmp, file);
+  } finally {
+    try {
+      if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+    } catch {}
+  }
+}
+const jsonMutationQueues = new Map();
+async function queueJsonMutation(file, defaultVal, mutator) {
+  const previous = jsonMutationQueues.get(file) || Promise.resolve();
+  const current = previous.catch(() => {}).then(async () => {
+    const data = loadJson(file, cloneJsonValue(defaultVal));
+    const result = await mutator(data);
+    saveJson(file, data);
+    return result;
+  });
+  jsonMutationQueues.set(file, current);
+  try {
+    return await current;
+  } finally {
+    if (jsonMutationQueues.get(file) === current) jsonMutationQueues.delete(file);
+  }
+}
+
+const LAYOUT_PRESETS_FILE = path.join(DATA_DIR, 'layout-presets.json');
+const loadLayoutPresets = () => loadJson(LAYOUT_PRESETS_FILE, { presets: [] });
+const saveLayoutPresetsData = d => saveJson(LAYOUT_PRESETS_FILE, d);
 
 const loadCameras   = () => loadJson(CAMERAS_FILE,   { cameras: [] });
 const saveCameras   = d  => saveJson(CAMERAS_FILE,   d);
@@ -82,6 +117,12 @@ const loadCctvContents = () => loadJson(CCTV_CONTENT_FILE, { items: [] });
 const saveCctvContents = d => saveJson(CCTV_CONTENT_FILE, d);
 const loadCctvAllowedIps = () => loadJson(CCTV_ALLOWED_IPS_FILE, { ips: [] });
 const saveCctvAllowedIps = d => saveJson(CCTV_ALLOWED_IPS_FILE, d);
+const updateCameras = updater => queueJsonMutation(CAMERAS_FILE, { cameras: [] }, updater);
+const updateDisplays = updater => queueJsonMutation(DISPLAYS_FILE, { displays: [] }, updater);
+const updateSchedules = updater => queueJsonMutation(SCHEDULES_FILE, { channels: [], groups: [] }, updater);
+const updateChannels = updater => queueJsonMutation(CHANNELS_FILE, { channels: [] }, updater);
+const updateCctvContents = updater => queueJsonMutation(CCTV_CONTENT_FILE, { items: [] }, updater);
+const updateCctvAllowedIps = updater => queueJsonMutation(CCTV_ALLOWED_IPS_FILE, { ips: [] }, updater);
 
 function normalizeClientIp(rawIp) {
   const ip = String(rawIp || '').trim();
@@ -114,6 +155,7 @@ function requireCctvIpAllowed(req, res, next) {
 }
 const loadWebContents = () => loadJson(WEB_CONTENT_FILE, { items: [] });
 const saveWebContents = d => saveJson(WEB_CONTENT_FILE, d);
+const updateWebContents = updater => queueJsonMutation(WEB_CONTENT_FILE, { items: [] }, updater);
 
 function getRequestBaseUrl(req) {
   const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
@@ -127,11 +169,88 @@ function normalizePlaybackProfile(value) {
   return PLAYBACK_PROFILE_DEFAULT;
 }
 
+function normalizeDisplayType(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (v === 'pc' || v === 'pc_web') return 'pc_web';
+  if (v === 'welcome_board_pc') return 'welcome_board_pc';
+  return 'signage';
+}
+
+function isSignageDisplayType(value) {
+  return normalizeDisplayType(value) === 'signage';
+}
+
+function isPcDisplayType(value) {
+  return normalizeDisplayType(value) !== 'signage';
+}
+
+function normalizePositiveNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function normalizeScreenInfo(value) {
+  if (!value || typeof value !== 'object') return null;
+  const width = normalizePositiveNumber(value.width);
+  const height = normalizePositiveNumber(value.height);
+  if (!width || !height) return null;
+  const scaleFactor = normalizePositiveNumber(value.scaleFactor) || 1;
+  return { width, height, scaleFactor };
+}
+
+function normalizeOutputRect(value) {
+  if (!value || typeof value !== 'object') return null;
+  const width = normalizePositiveNumber(value.width);
+  const height = normalizePositiveNumber(value.height);
+  if (!width || !height) return null;
+  const x = Number.isFinite(Number(value.x)) ? Number(value.x) : 0;
+  const y = Number.isFinite(Number(value.y)) ? Number(value.y) : 0;
+  return { x, y, width, height };
+}
+
+function normalizeOutputCanvas(value) {
+  if (!value || typeof value !== 'object') return null;
+  const width = normalizePositiveNumber(value.width);
+  const height = normalizePositiveNumber(value.height);
+  if (!width || !height) return null;
+  return { width, height };
+}
+
+function normalizeDisplayOutput(value, fallback = null) {
+  const source = value && typeof value === 'object' ? value : {};
+  const fallbackSource = fallback && typeof fallback === 'object' ? fallback : {};
+  const canvas = normalizeOutputCanvas(source.canvas) || normalizeOutputCanvas(fallbackSource.canvas) || { width: 3840, height: 2160 };
+  const rect = normalizeOutputRect(source.rect) || normalizeOutputRect(fallbackSource.rect) || { x: 0, y: 0, width: canvas.width, height: canvas.height };
+  const rawMode = String(source.mode || fallbackSource.mode || '').trim();
+  const mode = rawMode === 'rect' ? 'rect' : 'fullscreen';
+  return { mode, canvas, rect };
+}
+
+function getDisplayOutputForPayload(display) {
+  if (normalizeDisplayType(display?.deviceType) !== 'welcome_board_pc') return null;
+  return normalizeDisplayOutput(display?.output);
+}
+
 function ensureDisplaysData() {
   const data = loadDisplays();
   data.displays = Array.isArray(data.displays) ? data.displays : [];
   let changed = false;
   for (const d of data.displays) {
+    const normalizedType = normalizeDisplayType(d.deviceType);
+    if (d.deviceType !== normalizedType) {
+      d.deviceType = normalizedType;
+      changed = true;
+    }
+    if (normalizedType === 'welcome_board_pc') {
+      const normalizedOutput = normalizeDisplayOutput(d.output);
+      if (JSON.stringify(d.output || null) !== JSON.stringify(normalizedOutput)) {
+        d.output = normalizedOutput;
+        changed = true;
+      }
+    } else if (d.output !== undefined) {
+      delete d.output;
+      changed = true;
+    }
     const normalized = normalizePlaybackProfile(d.playbackProfile);
     if (d.playbackProfile !== normalized) {
       d.playbackProfile = normalized;
@@ -263,26 +382,30 @@ function ensureChannelsData() {
   return channelData;
 }
 
-function syncScheduleItemsForWebContent(webId, fields = {}) {
-  const data = loadSchedules();
-  data.channels = Array.isArray(data.channels) ? data.channels : [];
-  let changed = false;
-  for (const schedule of data.channels) {
-    schedule.items = Array.isArray(schedule.items) ? schedule.items : [];
-    for (const item of schedule.items) {
-      if (item?.type !== 'web' || item.filename !== webContentKey(webId)) continue;
-      if (fields.label !== undefined && item.label !== fields.label) {
-        item.label = fields.label;
-        changed = true;
-      }
-      if (fields.webUrl !== undefined && item.webUrl !== fields.webUrl) {
-        item.webUrl = fields.webUrl;
-        changed = true;
+async function syncScheduleItemsForWebContent(webId, fields = {}) {
+  return updateSchedules((data) => {
+    data.channels = Array.isArray(data.channels) ? data.channels : [];
+    let changed = false;
+    for (const schedule of data.channels) {
+      schedule.items = Array.isArray(schedule.items) ? schedule.items : [];
+      for (const item of schedule.items) {
+        if (item?.type !== 'web' || item.filename !== webContentKey(webId)) continue;
+        if (fields.label !== undefined && item.label !== fields.label) {
+          item.label = fields.label;
+          changed = true;
+        }
+        if (fields.webUrl !== undefined && item.webUrl !== fields.webUrl) {
+          item.webUrl = fields.webUrl;
+          changed = true;
+        }
+        if (fields.muted !== undefined && !!item.muted !== !!fields.muted) {
+          item.muted = !!fields.muted;
+          changed = true;
+        }
       }
     }
-  }
-  if (changed) saveSchedules(data);
-  return changed;
+    return changed;
+  });
 }
 
 function parseTimeToSeconds(value) {
@@ -431,9 +554,18 @@ function resolveScheduleForChannelId(channelId) {
 
 function buildPlayerUpdatePayload(channelId) {
   const resolved = resolveScheduleForChannelId(channelId);
-  if (!resolved) return { type: 'update', channel: channelId || null, name: null, items: [] };
+  if (!resolved) {
+    return {
+      type: 'update',
+      playerContractVersion: PLAYER_CONTRACT_VERSION,
+      channel: channelId || null,
+      name: null,
+      items: []
+    };
+  }
   return {
     type: 'update',
+    playerContractVersion: PLAYER_CONTRACT_VERSION,
     channel: resolved.channel.id,
     name: resolved.channel.name || resolved.schedule.name,
     scheduleId: resolved.schedule.id,
@@ -449,6 +581,8 @@ const saveMediaGroups   = d  => saveJson(MEDIA_GROUPS_FILE, d);
 const MEDIA_META_FILE = path.join(DATA_DIR, 'media-meta.json');
 const loadMediaMeta   = () => loadJson(MEDIA_META_FILE, { items: {} });
 const saveMediaMeta   = d  => saveJson(MEDIA_META_FILE, d);
+const updateMediaGroups = updater => queueJsonMutation(MEDIA_GROUPS_FILE, { groups: [] }, updater);
+const updateMediaMeta = updater => queueJsonMutation(MEDIA_META_FILE, { items: {} }, updater);
 
 function webContentKey(id) {
   return `web:${id}`;
@@ -507,6 +641,7 @@ function normalizeDesignerSource(raw) {
 
 function normalizeDesignerPayload(raw) {
   if (!raw || typeof raw !== 'object') return null;
+  const mode = String(raw.mode || '').trim() === 'welcome' ? 'welcome' : 'standard';
   const orientation = String(raw.orientation || '').trim() === 'portrait' ? 'portrait' : 'landscape';
   const splitValue = parseInt(raw.split, 10);
   const split = [1, 2, 3, 4].includes(splitValue) ? splitValue : 1;
@@ -534,11 +669,13 @@ function normalizeDesignerPayload(raw) {
   const hasSource = placements.some(p => !!p.source);
   if (!hasSource) return null;
   return {
+    mode,
+    welcomeDisplayId: mode === 'welcome' ? String(raw.welcomeDisplayId || '').trim() || null : null,
     orientation,
     split,
     stageSize: {
-      w: Math.round(clampNumber(raw?.stageSize?.w, 100, 4096, orientation === 'portrait' ? 540 : 960)),
-      h: Math.round(clampNumber(raw?.stageSize?.h, 100, 4096, orientation === 'portrait' ? 960 : 540))
+      w: Math.round(clampNumber(raw?.stageSize?.w, 100, 16384, mode === 'welcome' ? 3840 : (orientation === 'portrait' ? 540 : 960))),
+      h: Math.round(clampNumber(raw?.stageSize?.h, 100, 16384, mode === 'welcome' ? 2160 : (orientation === 'portrait' ? 960 : 540)))
     },
     placements
   };
@@ -551,14 +688,17 @@ function resolvePlayableScheduleItems(items) {
     const filename = path.basename(String(item.filename || '').trim());
     const mediaMeta = meta.items?.[filename];
     if (!mediaMeta?.designer) {
-      if (mediaMeta?.label && !item.label) return { ...item, label: mediaMeta.label };
-      return item;
+      const next = { ...item };
+      if (mediaMeta?.label && !next.label) next.label = mediaMeta.label;
+      next.muted = !!mediaMeta?.muted;
+      return next;
     }
     return {
       ...item,
       type: 'web',
       webUrl: buildDesignerMediaUrl(filename),
       label: mediaMeta.label || item.label || filename.replace(/^\d+_/, ''),
+      muted: !!mediaMeta.muted,
       sourceFilename: filename,
       sourceType: item.type
     };
@@ -589,38 +729,38 @@ function collectDesignerSourceFilenamesFromPayload(designer) {
   return files;
 }
 
-function reconcileDesignerSourceMediaHiddenState() {
-  const meta = loadMediaMeta();
-  meta.items = meta.items || {};
+async function reconcileDesignerSourceMediaHiddenState() {
   const designerSources = collectDesignerSourceFilenames();
-  let changed = false;
-  for (const [filename, itemMeta] of Object.entries(meta.items || {})) {
-    const next = { ...(itemMeta || {}) };
-    if (designerSources.has(filename)) {
+  return updateMediaMeta((meta) => {
+    meta.items = meta.items || {};
+    let changed = false;
+    for (const [filename, itemMeta] of Object.entries(meta.items || {})) {
+      const next = { ...(itemMeta || {}) };
+      if (designerSources.has(filename)) {
+        if (next.hidden !== true) {
+          next.hidden = true;
+          meta.items[filename] = next;
+          changed = true;
+        }
+        continue;
+      }
+      if (next.hidden === true) {
+        delete next.hidden;
+        if (Object.keys(next).length) meta.items[filename] = next;
+        else delete meta.items[filename];
+        changed = true;
+      }
+    }
+    for (const filename of designerSources) {
+      const next = { ...(meta.items[filename] || {}) };
       if (next.hidden !== true) {
         next.hidden = true;
         meta.items[filename] = next;
         changed = true;
       }
-      continue;
     }
-    if (next.hidden === true) {
-      delete next.hidden;
-      if (Object.keys(next).length) meta.items[filename] = next;
-      else delete meta.items[filename];
-      changed = true;
-    }
-  }
-  for (const filename of designerSources) {
-    const next = { ...(meta.items[filename] || {}) };
-    if (next.hidden !== true) {
-      next.hidden = true;
-      meta.items[filename] = next;
-      changed = true;
-    }
-  }
-  if (changed) saveMediaMeta(meta);
-  return { changed, hiddenFiles: [...designerSources] };
+    return { changed, hiddenFiles: [...designerSources] };
+  });
 }
 
 // ═══════════════════════════════════════════════
@@ -1046,7 +1186,7 @@ async function executeDisplayAction(display, action, value, options = {}) {
         steps.push(makeStep('대상 확인', 'info', '플레이어 연결 상태 확인'));
         const player = getActivePlayerForDisplay(display);
         if (player) {
-          player.ws.send(JSON.stringify({ type: 'mode', mode: 'schedule' }));
+          player.ws.send(JSON.stringify({ type: 'mode', playerContractVersion: PLAYER_CONTRACT_VERSION, mode: 'schedule' }));
           steps.push(makeStep('스케줄 재생', 'success', '플레이어를 스케줄 재생 모드로 전환'));
           slog('player_mode_schedule_cmd', { ip: display.ip, displayId: display.id, bulk: !!options.bulk, via: 'ws' }, 'control');
         } else {
@@ -1080,7 +1220,7 @@ async function executeDisplayAction(display, action, value, options = {}) {
         const targetEpochMs = Number.isFinite(options.streamSyncEpochMs)
           ? Math.round(options.streamSyncEpochMs)
           : null;
-        player.ws.send(JSON.stringify({ type: 'mode', mode: 'streaming', url: streamUrl, playbackProfile, targetEpochMs }));
+        player.ws.send(JSON.stringify({ type: 'mode', playerContractVersion: PLAYER_CONTRACT_VERSION, mode: 'streaming', url: streamUrl, playbackProfile, targetEpochMs }));
         if (targetEpochMs) {
           const remainMs = Math.max(0, targetEpochMs - Date.now());
           steps.push(makeStep('스트리밍 동기 대기', 'success', `목표시각까지 ${remainMs}ms 대기 후 재생 (${playbackProfile})`));
@@ -1252,14 +1392,19 @@ function pushToChannel(channelId, payload) {
   return sent;
 }
 
+function buildPayloadForDisplay(payload, display) {
+  const output = getDisplayOutputForPayload(display);
+  if (!output) return payload;
+  return { ...payload, output };
+}
+
 function pushToDisplaysByChannelId(channelId, payload) {
   const displays = loadDisplays().displays || [];
-  const msg = JSON.stringify(payload);
   let sent = 0;
   for (const [duid, player] of activePlayers) {
     const dInfo = displays.find(d => String(d.duid || '').trim() === duid) || displays.find(d => d.ip === player.ip);
     if (dInfo && dInfo.channelId === channelId && player.ws?.readyState === WebSocket.OPEN) {
-      player.ws.send(msg);
+      player.ws.send(JSON.stringify(buildPayloadForDisplay(payload, dInfo)));
       sent++;
     }
   }
@@ -1510,6 +1655,7 @@ app.get('/api/schedule/current', (req, res) => {
   const resolved = resolveScheduleForChannelId(channelId);
   if (!resolved) return res.status(404).json({ error: '채널 또는 스케줄 없음' });
   res.json({
+    playerContractVersion: PLAYER_CONTRACT_VERSION,
     channel: { id: resolved.channel.id, name: resolved.channel.name, scheduleId: resolved.schedule.id },
     source: resolved.source,
     rule: resolved.rule || null,
@@ -1669,6 +1815,58 @@ setInterval(pruneExpiredSessions, 60 * 1000);
 // 관리자 UI
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ─── 레이아웃 프리셋 API ───────────────────────────
+
+app.get('/api/layout-presets', (req, res) => {
+  res.json(loadLayoutPresets());
+});
+
+app.post('/api/layout-presets', (req, res) => {
+  const { name, canvas, rect } = req.body || {};
+  if (!name || !canvas?.width || !canvas?.height) return res.status(400).json({ error: '이름과 canvas 해상도는 필수입니다' });
+  const data = loadLayoutPresets();
+  data.presets = Array.isArray(data.presets) ? data.presets : [];
+  const preset = {
+    id: `lp_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    name: String(name).trim(),
+    canvas: { width: Number(canvas.width), height: Number(canvas.height) },
+    rect: rect ? { x: Number(rect.x || 0), y: Number(rect.y || 0), width: Number(rect.width || canvas.width), height: Number(rect.height || canvas.height) } : null,
+    createdAt: Date.now()
+  };
+  data.presets.push(preset);
+  saveLayoutPresetsData(data);
+  res.json(preset);
+});
+
+app.put('/api/layout-presets/:id', (req, res) => {
+  const id = String(req.params.id || '').trim();
+  const { name, canvas, rect } = req.body || {};
+  const data = loadLayoutPresets();
+  data.presets = Array.isArray(data.presets) ? data.presets : [];
+  const idx = data.presets.findIndex(p => p.id === id);
+  if (idx < 0) return res.status(404).json({ error: '프리셋 없음' });
+  if (name !== undefined) data.presets[idx].name = String(name).trim();
+  if (canvas) {
+    data.presets[idx].canvas = { width: Number(canvas.width), height: Number(canvas.height) };
+  }
+  if (rect) {
+    data.presets[idx].rect = { x: Number(rect.x || 0), y: Number(rect.y || 0), width: Number(rect.width), height: Number(rect.height) };
+  }
+  saveLayoutPresetsData(data);
+  res.json(data.presets[idx]);
+});
+
+app.delete('/api/layout-presets/:id', (req, res) => {
+  const id = String(req.params.id || '').trim();
+  const data = loadLayoutPresets();
+  data.presets = Array.isArray(data.presets) ? data.presets : [];
+  const idx = data.presets.findIndex(p => p.id === id);
+  if (idx < 0) return res.status(404).json({ error: '프리셋 없음' });
+  data.presets.splice(idx, 1);
+  saveLayoutPresetsData(data);
+  res.json({ ok: true });
+});
+
 // ─── 미디어 라이브러리 API ─────────────────────────
 
 app.get('/api/media', (req, res) => {
@@ -1686,6 +1884,7 @@ app.get('/api/media', (req, res) => {
         createdAt: stat.mtime.toISOString(),
         label: meta.items?.[name]?.label || '',
         designer: meta.items?.[name]?.designer || null,
+        muted: !!meta.items?.[name]?.muted,
         hidden: !!meta.items?.[name]?.hidden
       };
     })
@@ -1698,13 +1897,14 @@ app.get('/api/media', (req, res) => {
     createdAt: item.createdAt || new Date().toISOString(),
     webUrl: item.url,
     label: item.name || '웹 콘텐츠',
+    muted: !!item.muted,
     webKind: item.kind || 'web',
     designer: item.kind === 'designer' ? (item.designer || null) : null
   }));
   res.json([...files, ...webItems].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))));
 });
 
-app.post('/api/media', upload.array('files', 20), (req, res) => {
+app.post('/api/media', upload.array('files', 20), async (req, res) => {
   const groupId  = req.body.groupId || null;
   const hidden = String(req.body.hidden || '').trim() === '1';
   const uploaded = (req.files || []).map(f => ({
@@ -1712,20 +1912,20 @@ app.post('/api/media', upload.array('files', 20), (req, res) => {
     size: f.size
   }));
   if (hidden && uploaded.length) {
-    const meta = loadMediaMeta();
-    meta.items = meta.items || {};
-    uploaded.forEach((f) => {
-      meta.items[f.filename] = { ...(meta.items[f.filename] || {}), hidden: true };
+    await updateMediaMeta((meta) => {
+      meta.items = meta.items || {};
+      uploaded.forEach((f) => {
+        meta.items[f.filename] = { ...(meta.items[f.filename] || {}), hidden: true };
+      });
     });
-    saveMediaMeta(meta);
   }
   if (groupId) {
-    const grpData = loadMediaGroups();
-    const grp = grpData.groups.find(g => g.id === groupId);
-    if (grp) {
-      uploaded.forEach(f => { if (!grp.files.includes(f.filename)) grp.files.push(f.filename); });
-      saveMediaGroups(grpData);
-    }
+    await updateMediaGroups((grpData) => {
+      const grp = grpData.groups.find(g => g.id === groupId);
+      if (grp) {
+        uploaded.forEach(f => { if (!grp.files.includes(f.filename)) grp.files.push(f.filename); });
+      }
+    });
   }
   slogReq(req, 'media_upload', { files: uploaded.map(f => f.filename), count: uploaded.length, groupId, hidden }, 'system');
   res.json({ ok: true, files: uploaded });
@@ -1742,34 +1942,31 @@ app.delete('/api/media/:filename', async (req, res) => {
     const removedSourceFiles = removed?.kind === 'designer'
       ? [...collectDesignerSourceFilenamesFromPayload(removed.designer)]
       : [];
-    saveWebContents(webData);
-    const grpData = loadMediaGroups();
-    grpData.groups.forEach(g => { g.files = (g.files || []).filter(f => f !== filename); });
-    saveMediaGroups(grpData);
-    reconcileDesignerSourceMediaHiddenState();
+    await updateWebContents((data) => {
+      const index = (data.items || []).findIndex(x => x.id === webId);
+      if (index !== -1) data.items.splice(index, 1);
+    });
+    await updateMediaGroups((grpData) => {
+      grpData.groups.forEach(g => { g.files = (g.files || []).filter(f => f !== filename); });
+    });
+    await reconcileDesignerSourceMediaHiddenState();
     if (removedSourceFiles.length) {
       const stillUsed = collectDesignerSourceFilenames();
-      const meta = loadMediaMeta();
-      let metaChanged = false;
-      let groupChanged = false;
       for (const sourceFile of removedSourceFiles) {
         if (stillUsed.has(sourceFile)) continue;
         const sourcePath = path.join(MEDIA_DIR, sourceFile);
         try {
           if (fs.existsSync(sourcePath)) await fs.promises.unlink(sourcePath);
         } catch {}
-        if (meta.items?.[sourceFile]) {
-          delete meta.items[sourceFile];
-          metaChanged = true;
-        }
-        grpData.groups.forEach(g => {
-          const before = (g.files || []).length;
-          g.files = (g.files || []).filter(f => f !== sourceFile);
-          if (g.files.length !== before) groupChanged = true;
+        await updateMediaMeta((meta) => {
+          if (meta.items?.[sourceFile]) delete meta.items[sourceFile];
+        });
+        await updateMediaGroups((grpData) => {
+          grpData.groups.forEach(g => {
+            g.files = (g.files || []).filter(f => f !== sourceFile);
+          });
         });
       }
-      if (metaChanged) saveMediaMeta(meta);
-      if (groupChanged) saveMediaGroups(grpData);
     }
     slogReq(req, 'web_content_delete', { id: removed.id, name: removed.name, url: removed.url }, 'system');
     return res.json({ ok: true });
@@ -1787,43 +1984,44 @@ app.delete('/api/media/:filename', async (req, res) => {
     return res.status(500).json({ error: '파일 삭제 실패' });
   }
   // 그룹에서도 제거
-  const grpData = loadMediaGroups();
-  grpData.groups.forEach(g => { g.files = g.files.filter(f => f !== filename); });
-  saveMediaGroups(grpData);
-  const meta = loadMediaMeta();
-  if (meta.items?.[filename]) {
-    delete meta.items[filename];
-    saveMediaMeta(meta);
-  }
-  reconcileDesignerSourceMediaHiddenState();
+  await updateMediaGroups((grpData) => {
+    grpData.groups.forEach(g => { g.files = g.files.filter(f => f !== filename); });
+  });
+  await updateMediaMeta((meta) => {
+    if (meta.items?.[filename]) delete meta.items[filename];
+  });
+  await reconcileDesignerSourceMediaHiddenState();
   slogReq(req, 'media_delete', { filename }, 'system');
   res.json({ ok: true });
 });
 
-app.put('/api/media/:filename', (req, res) => {
+app.put('/api/media/:filename', async (req, res) => {
   const filename = path.basename(req.params.filename);
   if (filename.startsWith('web:')) return res.status(400).json({ error: '웹 콘텐츠는 별도 수정 API 사용' });
   const label = String(req.body?.label || '').trim();
   const hidden = req.body?.hidden;
+  const muted = req.body?.muted;
   const designer = req.body?.designer !== undefined ? normalizeDesignerPayload(req.body?.designer) : undefined;
   if (req.body?.designer !== undefined && !designer) {
     return res.status(400).json({ error: '디자인 콘텐츠 정보가 올바르지 않습니다' });
   }
   const filePath = path.join(MEDIA_DIR, filename);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: '파일 없음' });
-  const meta = loadMediaMeta();
-  meta.items = meta.items || {};
-  const next = { ...(meta.items[filename] || {}) };
-  if (label) next.label = label;
-  else delete next.label;
-  if (hidden !== undefined) next.hidden = String(hidden) === '1' || hidden === true;
-  if (designer !== undefined) next.designer = designer;
-  if (!Object.keys(next).length) delete meta.items[filename];
-  else meta.items[filename] = next;
-  saveMediaMeta(meta);
-  reconcileDesignerSourceMediaHiddenState();
-  slogReq(req, 'media_update', { filename, label: label || null, hidden: hidden !== undefined ? next.hidden : undefined, designer: designer !== undefined }, 'system');
-  res.json({ ok: true, filename, label, hidden: next.hidden || false, designer: next.designer || null });
+  const result = await updateMediaMeta((meta) => {
+    meta.items = meta.items || {};
+    const next = { ...(meta.items[filename] || {}) };
+    if (label) next.label = label;
+    else delete next.label;
+    if (hidden !== undefined) next.hidden = String(hidden) === '1' || hidden === true;
+    if (muted !== undefined) next.muted = String(muted) === '1' || muted === true;
+    if (designer !== undefined) next.designer = designer;
+    if (!Object.keys(next).length) delete meta.items[filename];
+    else meta.items[filename] = next;
+    return { hidden: next.hidden || false, muted: next.muted || false, designer: next.designer || null };
+  });
+  await reconcileDesignerSourceMediaHiddenState();
+  slogReq(req, 'media_update', { filename, label: label || null, hidden: hidden !== undefined ? result.hidden : undefined, muted: muted !== undefined ? result.muted : undefined, designer: designer !== undefined }, 'system');
+  res.json({ ok: true, filename, label, hidden: result.hidden, muted: result.muted, designer: result.designer });
 });
 
 // ─── 미디어 그룹 API ──────────────────────────────
@@ -1861,150 +2059,170 @@ app.get('/api/web-contents', (req, res) => {
   res.json(loadWebContents());
 });
 
-app.post('/api/web-contents', (req, res) => {
+app.post('/api/web-contents', async (req, res) => {
   const name = String(req.body?.name || '').trim();
   const url = String(req.body?.url || '').trim();
   const groupId = String(req.body?.groupId || '').trim();
+  const muted = req.body?.muted === true || String(req.body?.muted || '').trim() === '1';
   if (!isAllowedWebUrl(url)) {
     return res.status(400).json({ error: '유효한 웹 URL 또는 내부 경로 필요' });
   }
-  const data = loadWebContents();
-  const item = {
-    id: `web_${crypto.randomBytes(4).toString('hex')}`,
-    name: name || `WEB ${data.items.length + 1}`,
-    url,
-    createdAt: new Date().toISOString()
-  };
-  data.items.push(item);
-  saveWebContents(data);
+  const item = await updateWebContents((data) => {
+    const nextItem = {
+      id: `web_${crypto.randomBytes(4).toString('hex')}`,
+      name: name || `WEB ${data.items.length + 1}`,
+      url,
+      muted,
+      createdAt: new Date().toISOString()
+    };
+    data.items.push(nextItem);
+    return nextItem;
+  });
   if (groupId) {
-    const grpData = loadMediaGroups();
-    const grp = (grpData.groups || []).find(g => g.id === groupId);
-    if (grp && !(grp.files || []).includes(webContentKey(item.id))) {
-      grp.files.push(webContentKey(item.id));
-      saveMediaGroups(grpData);
-    }
+    await updateMediaGroups((grpData) => {
+      const grp = (grpData.groups || []).find(g => g.id === groupId);
+      if (grp && !(grp.files || []).includes(webContentKey(item.id))) {
+        grp.files.push(webContentKey(item.id));
+      }
+    });
   }
-  slogReq(req, 'web_content_create', { id: item.id, name: item.name, url: item.url, groupId: groupId || null }, 'system');
+  slogReq(req, 'web_content_create', { id: item.id, name: item.name, url: item.url, muted, groupId: groupId || null }, 'system');
   res.json(item);
 });
 
-app.put('/api/web-contents/:id', (req, res) => {
+app.put('/api/web-contents/:id', async (req, res) => {
   const id = String(req.params.id || '').trim();
   const name = String(req.body?.name || '').trim();
   const url = String(req.body?.url || '').trim();
+  const muted = req.body?.muted === true || String(req.body?.muted || '').trim() === '1';
   if (!name) return res.status(400).json({ error: '콘텐츠 이름 필요' });
   if (!isAllowedWebUrl(url)) {
     return res.status(400).json({ error: '유효한 웹 URL 또는 내부 경로 필요' });
   }
-  const data = loadWebContents();
-  const item = (data.items || []).find(entry => entry.id === id);
-  if (!item) return res.status(404).json({ error: '웹 콘텐츠 없음' });
-  if (item.kind === 'designer') return res.status(400).json({ error: '디자인 콘텐츠는 전용 수정 API를 사용하세요' });
-  item.name = name;
-  item.url = url;
-  item.updatedAt = new Date().toISOString();
-  saveWebContents(data);
-  syncScheduleItemsForWebContent(item.id, { label: item.name, webUrl: item.url });
-  reconcileDesignerSourceMediaHiddenState();
-  slogReq(req, 'web_content_update', { id: item.id, name: item.name, url: item.url }, 'system');
+  const existing = (loadWebContents().items || []).find(entry => entry.id === id);
+  const item = await updateWebContents((data) => {
+    const target = (data.items || []).find(entry => entry.id === id);
+    if (!target) return null;
+    if (target.kind === 'designer') return '__designer__';
+    target.name = name;
+    target.url = url;
+    target.muted = muted;
+    target.updatedAt = new Date().toISOString();
+    return { ...target };
+  });
+  if (!existing || !item) return res.status(404).json({ error: '웹 콘텐츠 없음' });
+  if (item === '__designer__' || existing.kind === 'designer') return res.status(400).json({ error: '디자인 콘텐츠는 전용 수정 API를 사용하세요' });
+  await syncScheduleItemsForWebContent(item.id, { label: item.name, webUrl: item.url, muted: item.muted });
+  await reconcileDesignerSourceMediaHiddenState();
+  slogReq(req, 'web_content_update', { id: item.id, name: item.name, url: item.url, muted: item.muted }, 'system');
   res.json(item);
 });
 
-app.post('/api/designer-contents', (req, res) => {
+app.post('/api/designer-contents', async (req, res) => {
   const name = String(req.body?.name || '').trim();
   const groupId = String(req.body?.groupId || '').trim();
   const designer = normalizeDesignerPayload(req.body?.designer);
   if (!designer) return res.status(400).json({ error: '디자인 콘텐츠 정보가 올바르지 않습니다' });
-  const data = loadWebContents();
-  const id = `web_${crypto.randomBytes(4).toString('hex')}`;
-  const item = {
-    id,
-    kind: 'designer',
-    name: name || `디자인 콘텐츠 ${data.items.length + 1}`,
-    url: buildDesignerContentUrl(id),
-    designer,
-    createdAt: new Date().toISOString()
-  };
-  data.items.push(item);
-  saveWebContents(data);
+  const item = await updateWebContents((data) => {
+    const id = `web_${crypto.randomBytes(4).toString('hex')}`;
+    const nextItem = {
+      id,
+      kind: 'designer',
+      name: name || `디자인 콘텐츠 ${data.items.length + 1}`,
+      url: buildDesignerContentUrl(id),
+      muted: req.body?.muted === true || String(req.body?.muted || '').trim() === '1',
+      designer,
+      createdAt: new Date().toISOString()
+    };
+    data.items.push(nextItem);
+    return nextItem;
+  });
   if (groupId) {
-    const grpData = loadMediaGroups();
-    const grp = (grpData.groups || []).find(g => g.id === groupId);
-    if (grp && !(grp.files || []).includes(webContentKey(item.id))) {
-      grp.files.push(webContentKey(item.id));
-      saveMediaGroups(grpData);
-    }
+    await updateMediaGroups((grpData) => {
+      const grp = (grpData.groups || []).find(g => g.id === groupId);
+      if (grp && !(grp.files || []).includes(webContentKey(item.id))) {
+        grp.files.push(webContentKey(item.id));
+      }
+    });
   }
-  reconcileDesignerSourceMediaHiddenState();
+  await reconcileDesignerSourceMediaHiddenState();
   slogReq(req, 'designer_content_create', { id: item.id, name: item.name, groupId: groupId || null }, 'system');
   res.json(item);
 });
 
-app.put('/api/designer-contents/:id', (req, res) => {
+app.put('/api/designer-contents/:id', async (req, res) => {
   const id = String(req.params.id || '').trim();
   const name = String(req.body?.name || '').trim();
   const designer = normalizeDesignerPayload(req.body?.designer);
+  const muted = req.body?.muted === true || String(req.body?.muted || '').trim() === '1';
   if (!name) return res.status(400).json({ error: '콘텐츠 이름 필요' });
   if (!designer) return res.status(400).json({ error: '디자인 콘텐츠 정보가 올바르지 않습니다' });
-  const data = loadWebContents();
-  const item = (data.items || []).find(entry => entry.id === id && entry.kind === 'designer');
+  const item = await updateWebContents((data) => {
+    const target = (data.items || []).find(entry => entry.id === id && entry.kind === 'designer');
+    if (!target) return null;
+    target.name = name;
+    target.designer = designer;
+    target.url = buildDesignerContentUrl(target.id);
+    target.muted = muted;
+    target.updatedAt = new Date().toISOString();
+    return { ...target };
+  });
   if (!item) return res.status(404).json({ error: '디자인 콘텐츠 없음' });
-  item.name = name;
-  item.designer = designer;
-  item.url = buildDesignerContentUrl(item.id);
-  item.updatedAt = new Date().toISOString();
-  saveWebContents(data);
-  syncScheduleItemsForWebContent(item.id, { label: item.name, webUrl: item.url });
-  reconcileDesignerSourceMediaHiddenState();
-  slogReq(req, 'designer_content_update', { id: item.id, name: item.name }, 'system');
+  await syncScheduleItemsForWebContent(item.id, { label: item.name, webUrl: item.url, muted: item.muted });
+  await reconcileDesignerSourceMediaHiddenState();
+  slogReq(req, 'designer_content_update', { id: item.id, name: item.name, muted: item.muted }, 'system');
   res.json(item);
 });
 
-app.post('/api/media-groups', (req, res) => {
+app.post('/api/media-groups', async (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: '그룹명 필요' });
-  const data = loadMediaGroups();
-  const g = { id: `grp_${crypto.randomBytes(4).toString('hex')}`, name: name.trim(), files: [] };
-  data.groups.push(g);
-  saveMediaGroups(data);
+  const g = await updateMediaGroups((data) => {
+    const group = { id: `grp_${crypto.randomBytes(4).toString('hex')}`, name: name.trim(), files: [] };
+    data.groups.push(group);
+    return group;
+  });
   slogReq(req, 'media_group_create', { id: g.id, name: g.name }, 'system');
   res.json(g);
 });
 
-app.put('/api/media-groups/:id', (req, res) => {
+app.put('/api/media-groups/:id', async (req, res) => {
   const name = String(req.body?.name || '').trim();
   if (!name) return res.status(400).json({ error: '그룹명 필요' });
-  const data = loadMediaGroups();
-  const group = data.groups.find(g => g.id === req.params.id);
+  const group = await updateMediaGroups((data) => {
+    const target = data.groups.find(g => g.id === req.params.id);
+    if (!target) return null;
+    target.name = name;
+    return { ...target };
+  });
   if (!group) return res.status(404).json({ error: '그룹 없음' });
-  group.name = name;
-  saveMediaGroups(data);
   slogReq(req, 'media_group_update', { id: group.id, name: group.name }, 'system');
   res.json(group);
 });
 
-app.delete('/api/media-groups/:id', (req, res) => {
-  const data = loadMediaGroups();
-  const idx = data.groups.findIndex(g => g.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: '그룹 없음' });
-  const [removed] = data.groups.splice(idx, 1);
-  saveMediaGroups(data);
+app.delete('/api/media-groups/:id', async (req, res) => {
+  const removed = await updateMediaGroups((data) => {
+    const idx = data.groups.findIndex(g => g.id === req.params.id);
+    if (idx === -1) return null;
+    const [group] = data.groups.splice(idx, 1);
+    return group;
+  });
+  if (!removed) return res.status(404).json({ error: '그룹 없음' });
   slogReq(req, 'media_group_delete', { id: removed.id }, 'system');
   res.json({ ok: true });
 });
 
 // 파일을 특정 그룹으로 이동 (groupId: null → 미분류)
-app.patch('/api/media/:filename/group', (req, res) => {
+app.patch('/api/media/:filename/group', async (req, res) => {
   const filename = path.basename(req.params.filename);
   const { groupId } = req.body;
-  const data = loadMediaGroups();
-  data.groups.forEach(g => { g.files = g.files.filter(f => f !== filename); });
-  if (groupId) {
-    const g = data.groups.find(g => g.id === groupId);
-    if (g && !g.files.includes(filename)) g.files.push(filename);
-  }
-  saveMediaGroups(data);
+  await updateMediaGroups((data) => {
+    data.groups.forEach(g => { g.files = g.files.filter(f => f !== filename); });
+    if (groupId) {
+      const g = data.groups.find(g => g.id === groupId);
+      if (g && !g.files.includes(filename)) g.files.push(filename);
+    }
+  });
   res.json({ ok: true });
 });
 
@@ -2015,7 +2233,7 @@ app.get('/api/cctv-contents', (req, res) => {
   res.json(data);
 });
 
-app.post('/api/cctv-contents', (req, res) => {
+app.post('/api/cctv-contents', async (req, res) => {
   const { name, splitMode, cameraNames, duration } = req.body || {};
   const mode = normalizeSplitMode(splitMode);
   const camNames = Array.isArray(cameraNames)
@@ -2033,28 +2251,31 @@ app.post('/api/cctv-contents', (req, res) => {
   camNames.forEach(n => params.append('name', n));
   const cctvUrl = `/cctv/live?${params.toString()}`;
 
-  const data = loadCctvContents();
-  const item = {
-    id: `cctv_${crypto.randomBytes(4).toString('hex')}`,
-    name: title,
-    splitMode: mode,
-    cameraNames: camNames,
-    cctvUrl,
-    duration: Math.max(5, parseInt(duration, 10) || 30),
-    createdAt: new Date().toISOString()
-  };
-  data.items.push(item);
-  saveCctvContents(data);
+  const item = await updateCctvContents((data) => {
+    const nextItem = {
+      id: `cctv_${crypto.randomBytes(4).toString('hex')}`,
+      name: title,
+      splitMode: mode,
+      cameraNames: camNames,
+      cctvUrl,
+      duration: Math.max(5, parseInt(duration, 10) || 30),
+      createdAt: new Date().toISOString()
+    };
+    data.items.push(nextItem);
+    return nextItem;
+  });
   slogReq(req, 'cctv_content_create', { id: item.id, name: item.name, splitMode: item.splitMode }, 'schedule');
   res.json(item);
 });
 
-app.delete('/api/cctv-contents/:id', (req, res) => {
-  const data = loadCctvContents();
-  const idx = data.items.findIndex(x => x.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'CCTV 콘텐츠 없음' });
-  const [removed] = data.items.splice(idx, 1);
-  saveCctvContents(data);
+app.delete('/api/cctv-contents/:id', async (req, res) => {
+  const removed = await updateCctvContents((data) => {
+    const idx = data.items.findIndex(x => x.id === req.params.id);
+    if (idx === -1) return null;
+    const [item] = data.items.splice(idx, 1);
+    return item;
+  });
+  if (!removed) return res.status(404).json({ error: 'CCTV 콘텐츠 없음' });
   slogReq(req, 'cctv_content_delete', { id: removed.id, name: removed.name }, 'schedule');
   res.json({ ok: true });
 });
@@ -2070,76 +2291,93 @@ app.get('/api/schedule-groups', (req, res) => {
   res.json({ groups: data.groups || [] });
 });
 
-app.post('/api/schedule-groups', (req, res) => {
+app.post('/api/schedule-groups', async (req, res) => {
   const name = String(req.body?.name || '').trim();
   if (!name) return res.status(400).json({ error: '그룹명 필요' });
-  const data = ensureSchedulesData();
-  const group = {
-    id: `sg_${crypto.randomBytes(4).toString('hex')}`,
-    name,
-    createdAt: new Date().toISOString()
-  };
-  data.groups.push(group);
-  saveSchedules(data);
+  const group = await updateSchedules((data) => {
+    data.groups = Array.isArray(data.groups) ? data.groups : [];
+    const nextGroup = {
+      id: `sg_${crypto.randomBytes(4).toString('hex')}`,
+      name,
+      createdAt: new Date().toISOString()
+    };
+    data.groups.push(nextGroup);
+    return nextGroup;
+  });
   slogReq(req, 'schedule_group_create', { id: group.id, name: group.name }, 'schedule');
   res.json(group);
 });
 
-app.put('/api/schedule-groups/:id', (req, res) => {
+app.put('/api/schedule-groups/:id', async (req, res) => {
   const name = String(req.body?.name || '').trim();
   if (!name) return res.status(400).json({ error: '그룹명 필요' });
-  const data = ensureSchedulesData();
-  const group = (data.groups || []).find(g => g.id === req.params.id);
+  const group = await updateSchedules((data) => {
+    data.groups = Array.isArray(data.groups) ? data.groups : [];
+    const target = (data.groups || []).find(g => g.id === req.params.id);
+    if (!target) return null;
+    target.name = name;
+    return { ...target };
+  });
   if (!group) return res.status(404).json({ error: '그룹 없음' });
-  group.name = name;
-  saveSchedules(data);
   slogReq(req, 'schedule_group_update', { id: group.id, name: group.name }, 'schedule');
   res.json(group);
 });
 
-app.delete('/api/schedule-groups/:id', (req, res) => {
-  const data = ensureSchedulesData();
-  const idx = (data.groups || []).findIndex(g => g.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: '그룹 없음' });
-  const [removed] = data.groups.splice(idx, 1);
-  for (const sch of data.channels || []) {
-    if (sch.groupId === removed.id) sch.groupId = null;
-  }
-  saveSchedules(data);
+app.delete('/api/schedule-groups/:id', async (req, res) => {
+  const removed = await updateSchedules((data) => {
+    data.groups = Array.isArray(data.groups) ? data.groups : [];
+    data.channels = Array.isArray(data.channels) ? data.channels : [];
+    const idx = (data.groups || []).findIndex(g => g.id === req.params.id);
+    if (idx === -1) return null;
+    const [group] = data.groups.splice(idx, 1);
+    for (const sch of data.channels || []) {
+      if (sch.groupId === group.id) sch.groupId = null;
+    }
+    return group;
+  });
+  if (!removed) return res.status(404).json({ error: '그룹 없음' });
   slogReq(req, 'schedule_group_delete', { id: removed.id, name: removed.name }, 'schedule');
   res.json({ ok: true });
 });
 
 // 채널 생성
-app.post('/api/schedules', (req, res) => {
+app.post('/api/schedules', async (req, res) => {
   const { name, groupId } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: '스케줄명 필요' });
   const data = ensureSchedulesData();
   if (groupId && !data.groups.some(g => g.id === groupId)) {
     return res.status(400).json({ error: '존재하지 않는 스케줄 그룹' });
   }
-  const ch = { id: `ch_${crypto.randomBytes(4).toString('hex')}`, name: name.trim(), items: [], groupId: groupId || null };
-  data.channels.push(ch);
-  saveSchedules(data);
+  const ch = await updateSchedules((scheduleData) => {
+    scheduleData.channels = Array.isArray(scheduleData.channels) ? scheduleData.channels : [];
+    const nextChannel = { id: `ch_${crypto.randomBytes(4).toString('hex')}`, name: name.trim(), items: [], groupId: groupId || null };
+    scheduleData.channels.push(nextChannel);
+    return nextChannel;
+  });
   slogReq(req, 'schedule_channel_create', { id: ch.id, name: ch.name }, 'schedule');
   res.json(ch);
 });
 
 // 채널 수정 (이름 + 아이템 목록 전체 교체)
-app.put('/api/schedules/:id', (req, res) => {
+app.put('/api/schedules/:id', async (req, res) => {
   const data = ensureSchedulesData();
-  const ch = data.channels.find(c => c.id === req.params.id);
-  if (!ch) return res.status(404).json({ error: '채널 없음' });
-  if (req.body.name  !== undefined) ch.name  = req.body.name.trim();
-  if (req.body.items !== undefined) ch.items = req.body.items;
+  const existing = data.channels.find(c => c.id === req.params.id);
   if (req.body.groupId !== undefined) {
     const groupId = req.body.groupId || null;
     if (groupId && !data.groups.some(g => g.id === groupId)) {
       return res.status(400).json({ error: '존재하지 않는 스케줄 그룹' });
     }
-    ch.groupId = groupId;
   }
-  saveSchedules(data);
+  const ch = existing ? await updateSchedules((scheduleData) => {
+    scheduleData.channels = Array.isArray(scheduleData.channels) ? scheduleData.channels : [];
+    const target = scheduleData.channels.find(c => c.id === req.params.id);
+    if (!target) return null;
+    if (req.body.name  !== undefined) target.name  = req.body.name.trim();
+    if (req.body.items !== undefined) target.items = req.body.items;
+    if (req.body.groupId !== undefined) target.groupId = req.body.groupId || null;
+    return { ...target };
+  }) : null;
+  if (!ch) return res.status(404).json({ error: '채널 없음' });
   slogReq(req, 'schedule_channel_update', { id: ch.id }, 'schedule');
   
   const channelData = ensureChannelsData();
@@ -2158,12 +2396,15 @@ app.put('/api/schedules/:id', (req, res) => {
 });
 
 // 채널 삭제
-app.delete('/api/schedules/:id', (req, res) => {
-  const data = ensureSchedulesData();
-  const idx  = data.channels.findIndex(c => c.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: '채널 없음' });
-  const [removed] = data.channels.splice(idx, 1);
-  saveSchedules(data);
+app.delete('/api/schedules/:id', async (req, res) => {
+  const removed = await updateSchedules((data) => {
+    data.channels = Array.isArray(data.channels) ? data.channels : [];
+    const idx  = data.channels.findIndex(c => c.id === req.params.id);
+    if (idx === -1) return null;
+    const [schedule] = data.channels.splice(idx, 1);
+    return schedule;
+  });
+  if (!removed) return res.status(404).json({ error: '채널 없음' });
   const channelData = ensureChannelsData();
   const affectedChannelIds = [];
   (channelData.channels || []).forEach(ch => {
@@ -2177,7 +2418,9 @@ app.delete('/api/schedules/:id', (req, res) => {
       affectedChannelIds.push(ch.id);
     }
   });
-  saveChannels(channelData);
+  await updateChannels((data) => {
+    data.channels = channelData.channels;
+  });
   affectedChannelIds.forEach(channelId => {
     channelBroadcastState.set(channelId, getChannelResolvedStateKey(channelId));
     const payload = buildPlayerUpdatePayload(channelId);
@@ -2230,7 +2473,7 @@ app.get('/api/channels', (req, res) => {
   res.json({ channels });
 });
 
-app.post('/api/channels', (req, res) => {
+app.post('/api/channels', async (req, res) => {
   const { name, scheduleId, rules, defaultColor } = req.body || {};
   const channelName = String(name || '').trim();
   if (!channelName) return res.status(400).json({ error: '채널명 필요' });
@@ -2244,51 +2487,61 @@ app.post('/api/channels', (req, res) => {
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
-  const channelData = ensureChannelsData();
-  const ch = {
-    id: `vc_${crypto.randomBytes(4).toString('hex')}`,
-    name: channelName,
-    scheduleId: scheduleId || null,
-    defaultColor: /^#[0-9a-fA-F]{6}$/.test(String(defaultColor || '')) ? String(defaultColor) : '#5e81ac',
-    rules: normalizedRules || [],
-    createdAt: new Date().toISOString()
-  };
-  channelData.channels.push(ch);
-  saveChannels(channelData);
+  const ch = await updateChannels((channelData) => {
+    channelData.channels = Array.isArray(channelData.channels) ? channelData.channels : [];
+    const nextChannel = {
+      id: `vc_${crypto.randomBytes(4).toString('hex')}`,
+      name: channelName,
+      scheduleId: scheduleId || null,
+      defaultColor: /^#[0-9a-fA-F]{6}$/.test(String(defaultColor || '')) ? String(defaultColor) : '#5e81ac',
+      rules: normalizedRules || [],
+      createdAt: new Date().toISOString()
+    };
+    channelData.channels.push(nextChannel);
+    return nextChannel;
+  });
   slogReq(req, 'channel_create', { id: ch.id, name: ch.name, scheduleId: ch.scheduleId }, 'schedule');
   refreshChannelByRules(ch.id);
   res.json(ch);
 });
 
-app.put('/api/channels/:id', (req, res) => {
+app.put('/api/channels/:id', async (req, res) => {
   const channelData = ensureChannelsData();
-  const ch = channelData.channels.find(c => c.id === req.params.id);
-  if (!ch) return res.status(404).json({ error: '채널 없음' });
+  const existing = channelData.channels.find(c => c.id === req.params.id);
+  if (!existing) return res.status(404).json({ error: '채널 없음' });
   const schedules = loadSchedules();
+  let normalizedRules;
+  if (req.body.rules !== undefined) {
+    try {
+      normalizedRules = normalizeRulesInput(req.body.rules, schedules);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  }
   if (req.body.name !== undefined) {
     const name = String(req.body.name || '').trim();
     if (!name) return res.status(400).json({ error: '채널명 필요' });
-    ch.name = name;
   }
   if (req.body.scheduleId !== undefined) {
     const scheduleId = req.body.scheduleId || null;
     if (scheduleId && !schedules.channels.some(s => s.id === scheduleId)) {
       return res.status(400).json({ error: '존재하지 않는 스케줄' });
     }
-    ch.scheduleId = scheduleId;
   }
-  if (req.body.defaultColor !== undefined) {
-    const c = String(req.body.defaultColor || '').trim();
-    ch.defaultColor = /^#[0-9a-fA-F]{6}$/.test(c) ? c : (ch.defaultColor || '#5e81ac');
-  }
-  if (req.body.rules !== undefined) {
-    try {
-      ch.rules = normalizeRulesInput(req.body.rules, schedules);
-    } catch (err) {
-      return res.status(400).json({ error: err.message });
+  const ch = await updateChannels((data) => {
+    data.channels = Array.isArray(data.channels) ? data.channels : [];
+    const target = data.channels.find(c => c.id === req.params.id);
+    if (!target) return null;
+    if (req.body.name !== undefined) target.name = String(req.body.name || '').trim();
+    if (req.body.scheduleId !== undefined) target.scheduleId = req.body.scheduleId || null;
+    if (req.body.defaultColor !== undefined) {
+      const c = String(req.body.defaultColor || '').trim();
+      target.defaultColor = /^#[0-9a-fA-F]{6}$/.test(c) ? c : (target.defaultColor || '#5e81ac');
     }
-  }
-  saveChannels(channelData);
+    if (req.body.rules !== undefined) target.rules = normalizedRules;
+    return { ...target };
+  });
+  if (!ch) return res.status(404).json({ error: '채널 없음' });
   slogReq(req, 'channel_update', { id: ch.id, name: ch.name, scheduleId: ch.scheduleId }, 'schedule');
   refreshChannelByRules(ch.id);
   const payload = buildPlayerUpdatePayload(ch.id);
@@ -2303,18 +2556,22 @@ app.post('/api/channels/rebroadcast', (req, res) => {
   res.json({ ok: true });
 });
 
-app.delete('/api/channels/:id', (req, res) => {
-  const channelData = ensureChannelsData();
-  const idx = channelData.channels.findIndex(c => c.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: '채널 없음' });
-  const [removed] = channelData.channels.splice(idx, 1);
-  saveChannels(channelData);
-  channelBroadcastState.delete(removed.id);
-  const displayData = loadDisplays();
-  displayData.displays.forEach(d => {
-    if (d.channelId === removed.id) d.channelId = null;
+app.delete('/api/channels/:id', async (req, res) => {
+  const removed = await updateChannels((channelData) => {
+    channelData.channels = Array.isArray(channelData.channels) ? channelData.channels : [];
+    const idx = channelData.channels.findIndex(c => c.id === req.params.id);
+    if (idx === -1) return null;
+    const [channel] = channelData.channels.splice(idx, 1);
+    return channel;
   });
-  saveDisplays(displayData);
+  if (!removed) return res.status(404).json({ error: '채널 없음' });
+  channelBroadcastState.delete(removed.id);
+  await updateDisplays((displayData) => {
+    displayData.displays = Array.isArray(displayData.displays) ? displayData.displays : [];
+    displayData.displays.forEach(d => {
+      if (d.channelId === removed.id) d.channelId = null;
+    });
+  });
   slogReq(req, 'channel_delete', { id: removed.id, name: removed.name }, 'schedule');
   res.json({ ok: true });
 });
@@ -2325,62 +2582,97 @@ app.get('/api/displays', (req, res) => {
   res.json(ensureDisplaysData());
 });
 
-app.post('/api/displays', (req, res) => {
-  const { name, ip, location, channelId, mac, duid, playbackProfile } = req.body;
+app.post('/api/displays', async (req, res) => {
+  const { name, ip, location, channelId, mac, duid, playbackProfile, deviceType, output } = req.body;
   if (!name || !ip) return res.status(400).json({ error: '이름·IP 필요' });
   const channelData = ensureChannelsData();
   if (channelId && !(channelData.channels || []).some(c => c.id === channelId)) {
     return res.status(400).json({ error: '존재하지 않는 채널' });
   }
-  const data = ensureDisplaysData();
-  const d = {
-    id: `d_${crypto.randomBytes(4).toString('hex')}`,
-    name: name.trim(), ip: ip.trim(),
-    location: (location || '').trim(),
-    mac: (mac || '').trim(),
-    duid: (duid || '').trim(),
-    channelId: channelId || null,
-    playbackProfile: normalizePlaybackProfile(playbackProfile),
-    addedAt: new Date().toISOString()
-  };
-  data.displays.push(d);
-  saveDisplays(data);
+  const normalizedType = normalizeDisplayType(deviceType);
+  const d = await updateDisplays((data) => {
+    data.displays = Array.isArray(data.displays) ? data.displays : [];
+    const display = {
+      id: `d_${crypto.randomBytes(4).toString('hex')}`,
+      name: name.trim(), ip: ip.trim(),
+      deviceType: normalizedType,
+      location: (location || '').trim(),
+      mac: isSignageDisplayType(normalizedType) ? (mac || '').trim() : '',
+      duid: isSignageDisplayType(normalizedType) ? (duid || '').trim() : '',
+      channelId: channelId || null,
+      playbackProfile: isSignageDisplayType(normalizedType) ? normalizePlaybackProfile(playbackProfile) : PLAYBACK_PROFILE_DEFAULT,
+      addedAt: new Date().toISOString()
+    };
+    if (normalizedType === 'welcome_board_pc') {
+      display.output = normalizeDisplayOutput(output);
+    }
+    data.displays.push(display);
+    return display;
+  });
   slogReq(req, 'display_add', { id: d.id, name: d.name, ip: d.ip }, 'control');
   res.json(d);
 });
 
-app.put('/api/displays/:id', (req, res) => {
+app.put('/api/displays/:id', async (req, res) => {
   const data = ensureDisplaysData();
-  const d = data.displays.find(x => x.id === req.params.id);
-  if (!d) return res.status(404).json({ error: '디스플레이 없음' });
-  const prevChannelId = d.channelId || null;
+  const existing = data.displays.find(x => x.id === req.params.id);
+  if (!existing) return res.status(404).json({ error: '디스플레이 없음' });
+  const prevChannelId = existing.channelId || null;
   const channelData = ensureChannelsData();
   if (req.body.channelId && !(channelData.channels || []).some(c => c.id === req.body.channelId)) {
     return res.status(400).json({ error: '존재하지 않는 채널' });
   }
-  ['name', 'ip', 'location', 'channelId', 'mac', 'duid'].forEach(k => {
-    if (req.body[k] !== undefined) d[k] = typeof req.body[k] === 'string' ? req.body[k].trim() : req.body[k];
+  const d = await updateDisplays((displayData) => {
+    displayData.displays = Array.isArray(displayData.displays) ? displayData.displays : [];
+    const target = displayData.displays.find(x => x.id === req.params.id);
+    if (!target) return null;
+    if (req.body.deviceType !== undefined) {
+      target.deviceType = normalizeDisplayType(req.body.deviceType);
+      if (!isSignageDisplayType(target.deviceType)) {
+        target.mac = '';
+        target.duid = '';
+        target.playbackProfile = PLAYBACK_PROFILE_DEFAULT;
+      }
+      if (target.deviceType !== 'welcome_board_pc') {
+        delete target.output;
+      } else {
+        target.output = normalizeDisplayOutput(req.body.output, target.output);
+      }
+    }
+    ['name', 'ip', 'location', 'channelId', 'mac', 'duid'].forEach(k => {
+      if (req.body[k] !== undefined) {
+        if ((k === 'mac' || k === 'duid') && !isSignageDisplayType(target.deviceType)) return;
+        target[k] = typeof req.body[k] === 'string' ? req.body[k].trim() : req.body[k];
+      }
+    });
+    if (req.body.playbackProfile !== undefined && isSignageDisplayType(target.deviceType)) {
+      target.playbackProfile = normalizePlaybackProfile(req.body.playbackProfile);
+    }
+    if (req.body.output !== undefined && normalizeDisplayType(target.deviceType) === 'welcome_board_pc') {
+      target.output = normalizeDisplayOutput(req.body.output, target.output);
+    }
+    return { ...target };
   });
-  if (req.body.playbackProfile !== undefined) {
-    d.playbackProfile = normalizePlaybackProfile(req.body.playbackProfile);
-  }
-  saveDisplays(data);
+  if (!d) return res.status(404).json({ error: '디스플레이 없음' });
   slogReq(req, 'display_update', { id: d.id }, 'control');
-  if (req.body.channelId !== undefined && d.channelId !== prevChannelId) {
+  if ((req.body.channelId !== undefined && d.channelId !== prevChannelId) || req.body.output !== undefined) {
     const player = getActivePlayerForDisplay(d);
     if (player) {
-      player.ws.send(JSON.stringify(buildPlayerUpdatePayload(d.channelId)));
+      player.ws.send(JSON.stringify(buildPayloadForDisplay(buildPlayerUpdatePayload(d.channelId), d)));
     }
   }
   res.json({ ok: true });
 });
 
-app.delete('/api/displays/:id', (req, res) => {
-  const data = loadDisplays();
-  const idx  = data.displays.findIndex(x => x.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: '디스플레이 없음' });
-  const [removed] = data.displays.splice(idx, 1);
-  saveDisplays(data);
+app.delete('/api/displays/:id', async (req, res) => {
+  const removed = await updateDisplays((data) => {
+    data.displays = Array.isArray(data.displays) ? data.displays : [];
+    const idx  = data.displays.findIndex(x => x.id === req.params.id);
+    if (idx === -1) return null;
+    const [display] = data.displays.splice(idx, 1);
+    return display;
+  });
+  if (!removed) return res.status(404).json({ error: '디스플레이 없음' });
   slogReq(req, 'display_remove', { id: removed.id, name: removed.name }, 'control');
   res.json({ ok: true });
 });
@@ -2461,29 +2753,35 @@ app.get('/api/cameras', (req, res) => {
   res.json(loadCameras());
 });
 
-app.post('/api/cameras', (req, res) => {
+app.post('/api/cameras', async (req, res) => {
   const { name, host, user, pass } = req.body;
   if (!name || !host) return res.status(400).json({ error: '이름·호스트 필요' });
   if (!/^[\w가-힣]+$/.test(name)) return res.status(400).json({ error: '잘못된 카메라 이름' });
   const data = loadCameras();
   const dup  = data.cameras.find(c => c.host === host && c.user === user && c.pass === pass);
   if (dup) return res.json({ ok: true, camera: dup, reused: true });
-  const cam = { name, host, user: user || 'admin', pass: pass || '' };
-  data.cameras.push(cam);
-  saveCameras(data);
+  const cam = await updateCameras((cameraData) => {
+    cameraData.cameras = Array.isArray(cameraData.cameras) ? cameraData.cameras : [];
+    const nextCamera = { name, host, user: user || 'admin', pass: pass || '' };
+    cameraData.cameras.push(nextCamera);
+    return nextCamera;
+  });
   slog('camera_add', { name, host }, 'stream');
   res.json({ ok: true, camera: cam });
 });
 
-app.patch('/api/cameras/:name/password', (req, res) => {
+app.patch('/api/cameras/:name/password', async (req, res) => {
   if (!/^[\w가-힣]+$/.test(req.params.name)) return res.status(400).json({ error: '잘못된 이름' });
   const { pass } = req.body;
   if (!pass || !pass.trim()) return res.status(400).json({ error: '비밀번호 필요' });
-  const data = loadCameras();
-  const cam  = data.cameras.find(c => c.name === req.params.name);
+  const cam  = await updateCameras((data) => {
+    data.cameras = Array.isArray(data.cameras) ? data.cameras : [];
+    const target = data.cameras.find(c => c.name === req.params.name);
+    if (!target) return null;
+    target.pass = pass.trim();
+    return { ...target };
+  });
   if (!cam) return res.status(404).json({ error: '카메라 없음' });
-  cam.pass = pass.trim();
-  saveCameras(data);
   const entry = cameraProcesses.get(req.params.name);
   if (entry) {
     slog('stream_pw_changed', { camera: req.params.name }, 'stream');
@@ -2507,11 +2805,12 @@ app.post('/api/streams/:name/restart', (req, res) => {
   res.json({ ok: true });
 });
 
-app.delete('/api/cameras/:name', (req, res) => {
+app.delete('/api/cameras/:name', async (req, res) => {
   if (!/^[\w가-힣]+$/.test(req.params.name)) return res.status(400).json({ error: '잘못된 이름' });
-  const data = loadCameras();
-  data.cameras = data.cameras.filter(c => c.name !== req.params.name);
-  saveCameras(data);
+  await updateCameras((data) => {
+    data.cameras = Array.isArray(data.cameras) ? data.cameras : [];
+    data.cameras = data.cameras.filter(c => c.name !== req.params.name);
+  });
   const entry = cameraProcesses.get(req.params.name);
   if (entry) {
     slog('stream_camera_deleted', { camera: req.params.name }, 'stream');
@@ -2526,30 +2825,32 @@ app.get('/api/cctv-allowed-ips', (req, res) => {
   res.json({ ips: data.ips });
 });
 
-app.post('/api/cctv-allowed-ips', (req, res) => {
+app.post('/api/cctv-allowed-ips', async (req, res) => {
   const ip = String(req.body?.ip || '').trim();
   if (!ip) return res.status(400).json({ error: 'IP 필요' });
   if (!/^[0-9a-zA-Z:.]+$/.test(ip)) return res.status(400).json({ error: 'IP 형식 오류' });
-  const data = loadCctvAllowedIps();
-  data.ips = Array.isArray(data.ips) ? data.ips : [];
-  if (!data.ips.includes(ip)) data.ips.push(ip);
-  saveCctvAllowedIps(data);
+  const ips = await updateCctvAllowedIps((data) => {
+    data.ips = Array.isArray(data.ips) ? data.ips : [];
+    if (!data.ips.includes(ip)) data.ips.push(ip);
+    return [...data.ips];
+  });
   slog('cctv_allowed_ip_add', { ip }, 'system');
-  res.json({ ok: true, ips: data.ips });
+  res.json({ ok: true, ips });
 });
 
-app.delete('/api/cctv-allowed-ips/:ip', (req, res) => {
+app.delete('/api/cctv-allowed-ips/:ip', async (req, res) => {
   const ip = String(req.params.ip || '').trim();
-  const data = loadCctvAllowedIps();
-  data.ips = Array.isArray(data.ips) ? data.ips : [];
-  data.ips = data.ips.filter(v => v !== ip);
-  saveCctvAllowedIps(data);
+  const ips = await updateCctvAllowedIps((data) => {
+    data.ips = Array.isArray(data.ips) ? data.ips : [];
+    data.ips = data.ips.filter(v => v !== ip);
+    return [...data.ips];
+  });
   slog('cctv_allowed_ip_delete', { ip }, 'system');
-  res.json({ ok: true, ips: data.ips });
+  res.json({ ok: true, ips });
 });
 
 // MagicInfo ZIP 생성
-app.post('/api/generate', (req, res) => {
+app.post('/api/generate', async (req, res) => {
   const { cameras: newCameras, splitMode: rawSplitMode, images } = req.body;
   const splitMode = normalizeSplitMode(rawSplitMode);
   if (!newCameras || !Array.isArray(newCameras)) return res.status(400).json({ error: '요청 오류' });
@@ -2568,8 +2869,9 @@ app.post('/api/generate', (req, res) => {
     if (!updatedCameras.some(ec => ec.host === rc.host && ec.user === rc.user && ec.pass === rc.pass))
       updatedCameras.push(rc);
   }
-  data.cameras = updatedCameras;
-  saveCameras(data);
+  await updateCameras((cameraData) => {
+    cameraData.cameras = updatedCameras;
+  });
 
   const htmlContent = generateCctvHtml(resolvedCameras, getRequestBaseUrl(req), splitMode);
   const htmlFilename = splitMode === 1 ? 'index.html' : splitMode === 2 ? 'index2.html' : 'index4.html';
@@ -2671,7 +2973,7 @@ app.post('/api/players/reload', (req, res) => {
   if (!ip) return res.status(400).json({ error: 'IP 필요' });
   const found = getActivePlayerByIp(ip);
   if (!found) return res.status(404).json({ error: '플레이어가 온라인이 아닙니다' });
-  found.ws.send(JSON.stringify({ type: 'reload' }));
+  found.ws.send(JSON.stringify({ type: 'reload', playerContractVersion: PLAYER_CONTRACT_VERSION }));
   slog('player_reload_cmd', { ip }, 'control');
   res.json({ ok: true });
 });
@@ -2716,7 +3018,11 @@ wss.on('connection', (ws, req) => {
       // 기존 DUID가 비어있을 때만 자동 채움
       if (dInfo && !String(dInfo.duid || '').trim()) {
         dInfo.duid = duid;
-        saveDisplays(dispData);
+        updateDisplays((data) => {
+          data.displays = Array.isArray(data.displays) ? data.displays : [];
+          const target = data.displays.find(d => d.id === dInfo.id);
+          if (target && !String(target.duid || '').trim()) target.duid = duid;
+        }).catch(() => {});
       }
     } else {
       dInfo = displays.find(d => d.ip === ip);
@@ -2724,7 +3030,7 @@ wss.on('connection', (ws, req) => {
 
     // 이 기기에 할당된 채널 정보가 있다면 전송
     if (dInfo && dInfo.channelId) {
-      ws.send(JSON.stringify(buildPlayerUpdatePayload(dInfo.channelId)));
+      ws.send(JSON.stringify(buildPayloadForDisplay(buildPlayerUpdatePayload(dInfo.channelId), dInfo)));
     }
   }
 
@@ -2745,7 +3051,7 @@ wss.on('connection', (ws, req) => {
           const entry = activePlayers.get(ws.duid);
           if (entry) entry.lastSeen = Date.now();
         }
-        ws.send(JSON.stringify({ type: 'pong', ts: Date.now() }));
+        ws.send(JSON.stringify({ type: 'pong', playerContractVersion: PLAYER_CONTRACT_VERSION, ts: Date.now() }));
       } else if (msg.type === 'heartbeat') {
         if (!ws.duid) return;
         const entry = activePlayers.get(ws.duid);
@@ -2754,6 +3060,11 @@ wss.on('connection', (ws, req) => {
         entry.lastHeartbeatAt = Date.now();
         entry.channelId = ws.channelId || msg.player?.channelId || entry.channelId || null;
         entry.player = {
+          playerContractVersion: Number.isFinite(Number(msg.playerContractVersion))
+            ? Number(msg.playerContractVersion)
+            : (Number.isFinite(Number(msg.player?.playerContractVersion)) ? Number(msg.player.playerContractVersion) : null),
+          appType: msg.player?.appType ? normalizeDisplayType(msg.player.appType) : null,
+          appVersion: msg.player?.appVersion ? String(msg.player.appVersion).slice(0, 64) : null,
           mode: msg.player?.mode || 'schedule',
           playback: msg.player?.playback || 'unknown',
           currentType: msg.player?.currentType || null,
@@ -2764,6 +3075,9 @@ wss.on('connection', (ws, req) => {
           queueSize: Number.isInteger(msg.player?.queueSize) ? msg.player.queueSize : null,
           itemIndex: Number.isInteger(msg.player?.itemIndex) ? msg.player.itemIndex : null,
           lastError: msg.player?.lastError || null,
+          ready: msg.player?.ready === undefined ? null : msg.player.ready === true,
+          screen: normalizeScreenInfo(msg.player?.screen),
+          output: normalizeOutputRect(msg.player?.output),
           ts: Number.isFinite(msg.ts) ? msg.ts : Date.now()
         };
       }
@@ -2824,7 +3138,7 @@ setInterval(pollAllMdcStatus, 30000);  // 이후 30초마다
 // 채널 규칙(시간/우선순위) 자동 전환 감시
 setTimeout(refreshAllChannelsByRules, 5000);
 setInterval(refreshAllChannelsByRules, 15000);
-reconcileDesignerSourceMediaHiddenState();
+reconcileDesignerSourceMediaHiddenState().catch(() => {});
 
 // ═══════════════════════════════════════════════
 //  로그인 페이지 HTML

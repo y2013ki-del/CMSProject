@@ -23,7 +23,7 @@
     body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.5; }
     header { background: #1a1a1a; color: #fff; padding: 16px 40px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1000; }
     .badge { background: var(--accent); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-left: 8px; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+    .container { max-width: 1480px; margin: 0 auto; padding: 26px 24px; }
     
     /* Tabs */
     .tabs { display: flex; gap: 8px; margin-bottom: 30px; border-bottom: 2px solid var(--border); padding-bottom: 2px; }
@@ -58,11 +58,17 @@
     .media-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; position: relative; transition: transform 0.2s; }
     .media-card:hover { transform: translateY(-3px); }
     .media-thumb { width: 100%; height: 110px; background: #000; display: flex; align-items: center; justify-content: center; position: relative; }
-    .media-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .media-thumb img, .media-thumb iframe { width: 100%; height: 100%; object-fit: cover; border: 0; display: block; }
     .video-badge { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.6); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
 
     /* Schedule Editor */
     .schedule-layout { display: grid; grid-template-columns: 260px 1fr; gap: 20px; }
+    .schedule-editor-grid { display:grid; grid-template-columns: minmax(320px, 380px) minmax(0, 1fr); gap: 18px; align-items:start; min-height:min(70vh, 860px); }
+    .schedule-picker-pane,
+    .schedule-items-pane { border:1px solid var(--border); border-radius: 12px; background: var(--surface); min-height: 0; display:flex; flex-direction:column; }
+    .schedule-pane-head { padding: 14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .schedule-pane-title { font-size: 14px; font-weight: 800; }
+    .schedule-pane-body { padding: 14px 16px; min-height: 0; flex:1; }
     .channel-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
     .channel-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
     .channel-item.active { background: rgba(201,162,39,0.1); color: var(--accent); }
@@ -77,6 +83,7 @@
     .btn-accent { background: var(--accent); color: #fff; }
     .btn-action { padding: 4px 10px; font-size: 12px; border: 1px solid var(--border); border-radius: 6px; background: #fff; cursor: pointer; }
     .btn-action:hover { border-color: var(--accent); }
+    .btn-action.active { border-color: var(--accent); color: var(--accent); font-weight: 800; background: rgba(201,162,39,0.08); }
     
     /* Advanced Logging Styles */
     .log-toolbar { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; background: var(--surface2); padding: 10px; border-radius: 8px; }
@@ -102,30 +109,37 @@
     .form-group { display: flex; flex-direction: column; gap: 4px; }
     .form-group label { font-size: 11px; font-weight: 700; color: var(--muted); }
     input, select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; outline: none; }
+    .device-type-toggle { display:flex; gap:8px; }
+    .device-type-btn { flex:1; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:#fff; font-weight:700; cursor:pointer; }
+    .device-type-btn.active { border-color: var(--accent); background: rgba(201,162,39,.12); color: var(--accent); }
 
-    #toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 24px; background: #333; color: #fff; border-radius: 10px; opacity: 0; transition: opacity 0.3s; z-index: 2000; pointer-events: none; }
+    #toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 24px; background: #333; color: #fff; border-radius: 10px; opacity: 0; transition: opacity 0.3s; z-index: 10000; pointer-events: none; }
     #toast.show { opacity: 1; }
 
     /* ── 콘텐츠 탭 그룹 레이아웃 ── */
     .media-layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
-    .group-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; align-self: start; }
+    .group-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; align-self: start; min-height: min(78vh, 980px); display:flex; flex-direction:column; }
     .group-panel-header { padding: 12px 16px; background: var(--surface2); font-size: 13px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
     .group-item { padding: 11px 16px; cursor: pointer; border-bottom: 1px solid var(--border); font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
     .group-item:hover { background: var(--surface2); }
     .group-item.active { background: rgba(201,162,39,0.12); color: var(--accent); font-weight: 700; }
     .group-item .del-grp { opacity: 0; font-size: 12px; color: var(--danger); border: none; background: none; cursor: pointer; padding: 0 2px; }
     .group-item:hover .del-grp { opacity: 1; }
+    #groupList { flex:1; overflow:auto; }
 
     /* ── 스케줄 피커 ── */
     .picker-group-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
     .picker-group-tab { padding: 5px 14px; border: 1.5px solid var(--border); border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; background: #fff; transition: all .15s; }
     .picker-group-tab:hover { border-color: var(--accent); }
     .picker-group-tab.active { border-color: var(--accent); background: rgba(201,162,39,0.1); color: var(--accent); }
-    .picker-grid-new { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; max-height: 280px; overflow-y: auto; padding: 4px 2px; }
+    .picker-grid-new { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; max-height: 520px; overflow-y: auto; padding: 4px 2px; }
     .picker-card { border: 2px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer; transition: border-color .15s, transform .15s; background: #fff; }
     .picker-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .picker-card-top { display:flex; justify-content:flex-end; align-items:center; gap:4px; padding:4px 4px 0; }
+    .picker-mini-btn { width:22px; height:22px; border:1px solid var(--border); border-radius:6px; background:#fff; cursor:pointer; font-size:12px; line-height:1; color:var(--muted); }
+    .picker-mini-btn:hover { border-color: var(--accent); color: var(--accent); }
     .picker-thumb { width: 100%; height: 72px; background: #111; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    .picker-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .picker-thumb img, .picker-thumb iframe { width: 100%; height: 100%; object-fit: cover; border: 0; display: block; }
     .picker-name { padding: 5px 6px; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 
     /* ── 드래그 앤 드롭 ── */
@@ -134,6 +148,14 @@
     .sched-item.drag-over { border: 2px dashed var(--accent) !important; background: rgba(201,162,39,0.06); }
     .drag-handle { cursor: grab; padding: 0 6px; color: #ccc; font-size: 16px; line-height: 1; user-select: none; flex-shrink: 0; }
     .drag-handle:active { cursor: grabbing; }
+    .sched-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; }
+    .sched-title-main { display:flex; align-items:center; gap:8px; min-width:0; }
+    .sched-title-main strong { font-size:12px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .sched-item-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .schedule-item-period-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .schedule-date-field { display:flex; align-items:center; gap:4px; }
+    .schedule-date-input { width: 178px; font-size: 11px; padding: 5px 8px; }
+    .schedule-date-picker-btn { width: 30px; padding: 4px 0; text-align:center; }
 
     /* ── 기기 모니터링 ── */
     .zone-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
@@ -152,9 +174,10 @@
     .editable:hover { border-color: var(--accent); color: var(--accent); }
 
     /* ── 신규 등록 모달 ── */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 3000; display: flex; align-items: center; justify-content: center; }
-    .modal-box { background: #fff; border-radius: 16px; padding: 28px 32px; width: 440px; max-width: 92vw; box-shadow: 0 10px 50px rgba(0,0,0,.2); }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: hidden; }
+    .modal-box { background: #fff; border-radius: 16px; padding: 28px 32px; width: 440px; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow: auto; box-shadow: 0 10px 50px rgba(0,0,0,.2); }
+    .modal-box.is-draggable { position: fixed; margin: 0; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; cursor: move; user-select: none; }
     .modal-header h3 { font-size: 17px; font-weight: 700; }
     .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted); line-height: 1; }
     .modal-form-group { margin-bottom: 14px; }
@@ -174,7 +197,7 @@
     .inline-menu button { width: 100%; text-align: left; border: none; background: transparent; padding: 8px 10px; font-size: 12px; cursor: pointer; color: var(--text); }
     .inline-menu button:hover { background: var(--surface2); }
     .calendar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 5200; display: none; align-items: center; justify-content: center; }
-    .calendar-modal { width: min(980px, 96vw); max-height: 92vh; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+    .calendar-modal { width: min(1480px, 98vw); height: min(92vh, 980px); max-height: none; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display:flex; flex-direction:column; }
     .calendar-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; }
     .calendar-nav { display:flex; align-items:center; gap:6px; }
     .calendar-center { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; }
@@ -182,7 +205,8 @@
     .calendar-jump { display:none; align-items:center; gap:6px; }
     .calendar-jump select { min-width:92px; padding:6px 8px; font-size:12px; }
     .calendar-view-tabs { display:flex; gap:6px; }
-    .calendar-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; }
+    #channelCalendarBody { flex:1; min-height:0; overflow:auto; }
+    .calendar-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; min-height:100%; grid-auto-rows:minmax(136px, 1fr); }
     .calendar-dow { font-size:11px; color:var(--muted); text-align:center; padding:6px 0; border-bottom:1px solid var(--border); }
     .calendar-cell { min-height:110px; border:1px solid var(--border); border-radius:8px; padding:6px; background: var(--surface2); }
     .calendar-cell.clickable { cursor: pointer; }
@@ -195,8 +219,8 @@
     .calendar-event-list { display:grid; gap:6px; }
     .calendar-event-row { border:1px solid var(--border); border-radius:8px; padding:8px; background: var(--surface2); font-size:12px; }
     .calendar-event-row.clickable { cursor: pointer; }
-    .calendar-week-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:8px; }
-    .calendar-week-col { border:1px solid var(--border); border-radius:8px; background: var(--surface2); min-height:280px; padding:6px; }
+    .calendar-week-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:8px; min-height:100%; }
+    .calendar-week-col { border:1px solid var(--border); border-radius:8px; background: var(--surface2); min-height:0; padding:6px; }
     .calendar-week-title { font-size:11px; color:var(--muted); margin-bottom:6px; text-align:center; }
     .calendar-week-title.clickable { cursor: pointer; }
     .calendar-btn { width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer; }
@@ -601,7 +625,10 @@
     <div class="section">
       <div class="section-title" style="margin-bottom:16px;">
         기기 제어
-        <small style="font-weight:400;font-size:12px;color:var(--muted);">선택 기기 대상 일괄/개별 제어</small>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <small style="font-weight:400;font-size:12px;color:var(--muted);">선택 기기 대상 일괄/개별 제어</small>
+          <button class="btn-action" onclick="refreshControlDashboard()">상태 새로고침</button>
+        </div>
       </div>
       <div id="bulkToolbar"></div>
       <div class="zone-chips" id="controlZoneChips"><span style="color:var(--muted);font-size:13px;">등록된 기기 없음</span></div>
@@ -611,10 +638,18 @@
 
   <!-- 신규 기기 등록 모달 -->
   <div id="registerModal" class="modal-overlay" style="display:none;" onclick="modalOverlayClick(event)">
-    <div class="modal-box">
-      <div class="modal-header">
+    <div class="modal-box" id="registerModalBox">
+      <div class="modal-header" id="registerModalHeader">
         <h3>기기 등록</h3>
         <button class="modal-close" onclick="closeRegModal()">✕</button>
+      </div>
+      <div class="modal-form-group">
+        <label>기기 유형</label>
+        <div class="device-type-toggle">
+          <button type="button" id="modalTypeSignage" class="device-type-btn active" onclick="setRegisterDeviceType('signage')">사이니지</button>
+          <button type="button" id="modalTypePc" class="device-type-btn" onclick="setRegisterDeviceType('pc_web')">PC</button>
+          <button type="button" id="modalTypeWelcome" class="device-type-btn" onclick="setRegisterDeviceType('welcome_board_pc')">웰컴보드 PC</button>
+        </div>
       </div>
       <div class="modal-form-group">
         <label>IP 주소</label>
@@ -629,7 +664,7 @@
         <label>구역</label>
         <input id="modalZone" placeholder="예: 1층 로비">
       </div>
-      <div class="modal-form-group">
+      <div class="modal-form-group" id="modalMacGroup">
         <label>MAC 주소 (전원 켜기용)</label>
         <input id="modalMac" placeholder="예: AA:BB:CC:DD:EE:FF">
         <div class="modal-hint">삼성 TV: 설정 → 네트워크 → 네트워크 상태에서 확인</div>
@@ -640,13 +675,21 @@
           <option value="">-- 나중에 설정 --</option>
         </select>
       </div>
-      <div class="modal-form-group">
+      <div class="modal-form-group" id="modalPlaybackProfileGroup">
         <label>재생 프로필</label>
         <select id="modalPlaybackProfile">
           <option value="balanced" selected>균형형 (권장)</option>
           <option value="stable">안정형</option>
           <option value="low_latency">저지연형</option>
         </select>
+      </div>
+      <div class="modal-form-group" id="modalOutputGroup" style="display:none;">
+        <label>웰컴보드 모니터 해상도</label>
+        <div class="modal-hint">PC가 실제로 출력하는 전체 화면 크기입니다. 콘텐츠 표출 위치는 콘텐츠 등록에서 설정합니다.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+          <label style="font-size:11px;color:var(--muted);">가로 (px)<input id="modalCanvasWidth" type="number" min="1" placeholder="3840" value="3840"></label>
+          <label style="font-size:11px;color:var(--muted);">세로 (px)<input id="modalCanvasHeight" type="number" min="1" placeholder="2160" value="2160"></label>
+        </div>
       </div>
       <div class="modal-actions">
         <button onclick="submitRegModal()" style="background:var(--accent);color:#fff;">등록</button>
@@ -671,16 +714,19 @@
       </div>
       <!-- 우측: 파일 목록 -->
       <div>
-        <div class="section" style="margin-bottom:0;">
+        <div class="section" style="margin-bottom:0; min-height:min(78vh, 980px); display:flex; flex-direction:column;">
           <div class="section-title">
             <span id="currentGroupTitle">전체 파일</span>
-            <button class="btn btn-accent" onclick="openUploadModal()">파일 업로드</button>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button class="btn btn-action" onclick="triggerDirectUpload()">파일 업로드</button>
+              <button class="btn btn-accent" onclick="openUploadModal()">콘텐츠 등록</button>
+            </div>
           </div>
-          <input type="file" id="fileInput" multiple style="display:none;">
+          <input type="file" id="fileInput" multiple style="display:none;" onchange="onDirectFilesSelected(this.files)">
           <div id="uploadProgress" style="display:none; margin:10px 0;">
             <div style="height:4px; background:#eee; border-radius:2px;"><div id="progressBar" style="width:0; height:100%; background:var(--accent); border-radius:2px;"></div></div>
           </div>
-          <div id="mediaGrid" class="media-grid"></div>
+          <div id="mediaGrid" class="media-grid" style="align-content:start;"></div>
         </div>
       </div>
     </div>
@@ -699,7 +745,7 @@
         </div>
         <div id="channelList"></div>
       </div>
-      <div id="scheduleEditor" class="section" style="min-height:500px;">
+      <div id="scheduleEditor" class="section" style="min-height:min(78vh, 980px);">
         <div style="display:flex; justify-content:center; align-items:center; height:100%; color:var(--muted);">스케줄을 선택하세요</div>
       </div>
     </div>
@@ -715,7 +761,7 @@
         </div>
         <div id="channelDefList"></div>
       </div>
-      <div id="channelEditor" class="section" style="min-height:500px;">
+      <div id="channelEditor" class="section" style="min-height:min(78vh, 980px);">
         <div style="display:flex; justify-content:center; align-items:center; height:100%; color:var(--muted);">채널을 선택하세요</div>
       </div>
     </div>
@@ -757,7 +803,10 @@
 <div id="uploadDesignerOverlay" class="upload-designer-overlay" onclick="closeUploadDesigner(event)">
   <div class="upload-designer" onclick="event.stopPropagation()">
     <div class="upload-designer-head">
-      <h3 style="font-size:17px;">콘텐츠 등록</h3>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <h3 id="uploadDesignerTitle" style="font-size:17px;">콘텐츠 등록</h3>
+        <button type="button" id="designerWelcomeModeBtn" class="btn-action" onclick="toggleDesignerWelcomeMode()">웰컴보드 전환</button>
+      </div>
       <button class="btn-action" onclick="closeUploadDesigner()">닫기</button>
     </div>
     <div class="upload-toolbar">
@@ -778,6 +827,15 @@
         <button type="button" class="designer-pill" onclick="setActiveSlotAspectRatio('9:16')">9:16</button>
         <button type="button" class="designer-pill" onclick="setActiveSlotAspectRatio('3:4')">3:4</button>
       </div>
+      <div id="designerWelcomeBtns" style="display:none;position:relative;">
+        <button type="button" id="designerLoadWelcomeResolutionBtn" class="btn-action" onclick="loadWelcomeBoardResolution()">웰컴보드 PC 해상도 불러오기</button>
+        <button type="button" class="btn-action" onclick="toggleLayoutPresetPanel()">프리셋 ▾</button>
+        <div id="layoutPresetPanel" style="display:none;position:absolute;top:100%;left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);min-width:260px;padding:10px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:8px;">레이아웃 프리셋</div>
+          <div id="layoutPresetList" style="display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto;margin-bottom:8px;"></div>
+          <button class="btn-action" style="width:100%;" onclick="saveCurrentAsPreset()">+ 현재 설정 저장</button>
+        </div>
+      </div>
       <div class="upload-toolbar-break"></div>
       <button class="btn-action" onclick="pickDesignerFiles()">파일 선택</button>
       <button class="btn-action" onclick="addDesignerWebSource()">웹 콘텐츠 등록</button>
@@ -786,12 +844,12 @@
       <span class="upload-summary" id="designerSummary">파일 0개 · 슬롯 0개</span>
     </div>
     <div class="upload-designer-body">
-      <div class="upload-lib">
+      <div class="upload-lib" ondragover="onDesignerExternalDragOver(event)" ondrop="onDesignerExternalDrop(event)">
         <div style="font-size:12px;font-weight:700;margin-bottom:8px;">업로드 파일</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">파일을 원하는 영역으로 드래그해 배치하세요</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">파일을 원하는 영역으로 드래그해 배치하거나, 이 영역에 직접 드롭해 추가하세요</div>
         <div id="designerLibrary" class="upload-lib-grid"></div>
       </div>
-      <div class="upload-stage-wrap">
+      <div class="upload-stage-wrap" ondragover="onDesignerExternalDragOver(event)" ondrop="onDesignerExternalDrop(event)">
         <div id="designerStage" class="upload-stage"></div>
       </div>
     </div>
@@ -866,6 +924,15 @@
       <label style="font-size:12px;color:var(--muted);">종료 시각</label>
       <input id="logDownloadToInput" type="datetime-local">
       <div class="modal-hint">비워두면 현재 보이는 범주의 전체 기간을 다운로드합니다.</div>
+    </div>
+    <div id="uiModalSelectFields" style="display:none;">
+      <label id="uiModalSelectLabel" style="font-size:12px;color:var(--muted);">선택</label>
+      <select id="uiModalSelectInput"></select>
+    </div>
+    <div id="uiModalDateTimeFields" style="display:none;">
+      <label style="font-size:12px;color:var(--muted);">일시</label>
+      <input id="uiModalDateTimeInput" type="datetime-local" step="1">
+      <div class="modal-hint">키보드 입력과 달력 선택을 함께 사용할 수 있습니다.</div>
     </div>
     <div class="ui-modal-actions">
       <button class="btn-action" id="uiModalCancelBtn">취소</button>
@@ -948,8 +1015,9 @@ const state = {
   dirtyScheduleEditor: false,
   dirtyChannelEditor: false,
   groups: [], currentGroup: null,
-  pickerGroups: [], allMediaForPicker: [],
+  pickerGroups: [], allMediaForPicker: [], currentPickerGroupId: null,
   currentMonitorZone: null, currentControlZone: null, dashData: null, mdcStatus: {},
+  registerDeviceType: 'signage',
   selectedDisplayIds: new Set(),
   bulkJob: null,
   controlDrafts: {},
@@ -958,6 +1026,9 @@ const state = {
     open: false,
     editingId: null,
     editingMediaFilename: null,
+    targetGroupId: null,
+    mode: 'standard',
+    welcomeDisplayId: null,
     contentName: '',
     orientation: 'landscape',
     split: 1,
@@ -967,13 +1038,15 @@ const state = {
     placements: [],
     stageSize: { w: 0, h: 0 },
     drag: null,
-    objectUrls: {}
+    objectUrls: {},
+    closeGuardUntil: 0
   }
 };
 let _dashInterval = null;
 let _uiModalResolve = null;
 let _weatherSearchResults = [];
 let _weatherSelectedLocation = null;
+let _registerModalDrag = null;
 
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', state.theme === 'dark' ? 'dark' : 'light');
@@ -984,6 +1057,18 @@ function toggleDarkMode() {
   localStorage.setItem('cms_theme', state.theme);
   applyTheme();
 }
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  const registerModal = document.getElementById('registerModal');
+  if (!registerModal || registerModal.style.display === 'none') return;
+  event.preventDefault();
+  closeRegModal();
+}, true);
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('registerModalHeader')?.addEventListener('mousedown', startRegisterModalDrag);
+});
 
 function closeInlineMenu() {
   const root = document.getElementById('inlineMenuRoot');
@@ -1017,7 +1102,7 @@ function openInlineMenu(event, items = []) {
   }, 0);
 }
 
-function uiModalOpen({ title, message = '', input = null, upload = false, weather = false, contentEdit = null, logDownload = false, okText = '확인', cancelText = '취소' }) {
+function uiModalOpen({ title, message = '', input = null, upload = false, weather = false, contentEdit = null, logDownload = false, selectField = null, dateTime = null, okText = '확인', cancelText = '취소' }) {
   return new Promise((resolve) => {
     const ov = document.getElementById('uiModalOverlay');
     const titleEl = document.getElementById('uiModalTitle');
@@ -1032,6 +1117,11 @@ function uiModalOpen({ title, message = '', input = null, upload = false, weathe
     const contentEditUrlEl = document.getElementById('contentEditUrlInput');
     const logDownloadFromEl = document.getElementById('logDownloadFromInput');
     const logDownloadToEl = document.getElementById('logDownloadToInput');
+    const selectWrapEl = document.getElementById('uiModalSelectFields');
+    const selectLabelEl = document.getElementById('uiModalSelectLabel');
+    const selectInputEl = document.getElementById('uiModalSelectInput');
+    const dateTimeWrapEl = document.getElementById('uiModalDateTimeFields');
+    const dateTimeInputEl = document.getElementById('uiModalDateTimeInput');
     const okBtn = document.getElementById('uiModalOkBtn');
     const cancelBtn = document.getElementById('uiModalCancelBtn');
     titleEl.textContent = title || '';
@@ -1042,6 +1132,17 @@ function uiModalOpen({ title, message = '', input = null, upload = false, weathe
     weatherEl.style.display = weather ? '' : 'none';
     contentEditEl.style.display = contentEdit ? '' : 'none';
     logDownloadEl.style.display = logDownload ? '' : 'none';
+    selectWrapEl.style.display = selectField ? '' : 'none';
+    dateTimeWrapEl.style.display = dateTime !== null ? '' : 'none';
+    if (selectField) {
+      selectLabelEl.textContent = selectField.label || '선택';
+      selectInputEl.innerHTML = (selectField.options || []).map((option) => (
+        `<option value="${escapeHtml(String(option.value ?? ''))}" ${String(option.value ?? '') === String(selectField.value ?? '') ? 'selected' : ''}>${escapeHtml(option.label || '')}</option>`
+      )).join('');
+    }
+    if (dateTime !== null) {
+      dateTimeInputEl.value = String(dateTime || '');
+    }
     if (weather) {
       const locationEl = document.getElementById('weatherLocationInput');
       const layoutTypeEl = document.getElementById('weatherLayoutType');
@@ -1064,7 +1165,12 @@ function uiModalOpen({ title, message = '', input = null, upload = false, weathe
       if (layoutTypeEl) layoutTypeEl.value = state.uploadDesigner.orientation === 'portrait' ? 'portrait' : 'landscape';
       if (themeTypeEl) themeTypeEl.value = state.theme === 'dark' ? 'dark' : 'light';
       if (resultEl) resultEl.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px;">검색어를 입력하고 검색하세요.</div>';
-      if (hintEl) hintEl.textContent = '위치를 검색하고 목록에서 선택하세요.';
+      if (hintEl) {
+        hintEl.textContent = '위치를 검색하고 목록에서 선택하세요.';
+        hintEl.style.color = 'var(--muted)';
+        hintEl.style.fontWeight = '500';
+      }
+      if (locationEl) locationEl.style.borderColor = 'var(--border)';
     }
     if (contentEdit) {
       if (contentEditNameEl) contentEditNameEl.value = contentEdit.name || '';
@@ -1078,11 +1184,24 @@ function uiModalOpen({ title, message = '', input = null, upload = false, weathe
     okBtn.textContent = okText;
     cancelBtn.textContent = cancelText;
     ov.style.display = 'flex';
+    const onKeyDown = (ev) => {
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        cleanup(null);
+        return;
+      }
+      if (ev.key !== 'Enter') return;
+      if (weather && document.activeElement === document.getElementById('weatherLocationInput')) return;
+      if (ev.target && ['TEXTAREA'].includes(ev.target.tagName)) return;
+      ev.preventDefault();
+      okBtn.click();
+    };
     const cleanup = (val) => {
       ov.style.display = 'none';
       okBtn.onclick = null;
       cancelBtn.onclick = null;
       ov.onclick = null;
+      document.removeEventListener('keydown', onKeyDown, true);
       resolve(val);
     };
     okBtn.onclick = () => {
@@ -1092,8 +1211,22 @@ function uiModalOpen({ title, message = '', input = null, upload = false, weathe
           placementMode: document.getElementById('uploadPlacementMode').value
         });
       } else if (weather) {
+        const locationEl = document.getElementById('weatherLocationInput');
+        const hintEl = document.getElementById('weatherSelectedHint');
+        if (!_weatherSelectedLocation) {
+          if (hintEl) {
+            hintEl.textContent = '위치가 선택되지 않았습니다. 검색 후 목록에서 하나를 선택해야 저장할 수 있습니다.';
+            hintEl.style.color = 'var(--danger)';
+            hintEl.style.fontWeight = '700';
+          }
+          if (locationEl) {
+            locationEl.style.borderColor = 'var(--danger)';
+            locationEl.focus();
+          }
+          return;
+        }
         cleanup({
-          location: document.getElementById('weatherLocationInput')?.value || '',
+          location: locationEl?.value || '',
           layoutType: document.getElementById('weatherLayoutType')?.value || 'landscape',
           viewType: document.getElementById('weatherViewType')?.value || 'weekly',
           themeType: document.getElementById('weatherThemeType')?.value || 'dark',
@@ -1109,11 +1242,19 @@ function uiModalOpen({ title, message = '', input = null, upload = false, weathe
           from: logDownloadFromEl?.value || '',
           to: logDownloadToEl?.value || ''
         });
+      } else if (selectField) {
+        cleanup(selectInputEl?.value || '');
+      } else if (dateTime !== null) {
+        cleanup(dateTimeInputEl?.value || '');
       } else if (input !== null) cleanup(inputEl.value);
       else cleanup(true);
     };
     cancelBtn.onclick = () => cleanup(null);
-    ov.onclick = () => cleanup(null);
+    ov.onclick = (ev) => {
+      if (ev && ev.target === ov) return;
+      cleanup(null);
+    };
+    document.addEventListener('keydown', onKeyDown, true);
   });
 }
 
@@ -1295,8 +1436,7 @@ function getActionLabel(action) {
     tv_restart: 'TV 재시작',
     wol: '전원 켜기',
     input: '입력 전환',
-    volume: '볼륨 설정',
-    channel: 'TV 채널 이동'
+    volume: '볼륨 설정'
   }[action] || action;
 }
 
@@ -1329,7 +1469,6 @@ function getControlDraft(id) {
       power: '',
       input: '',
       volume: '',
-      channel: '',
       schedulePlay: false,
       streaming: false,
       streamingUrl: '',
@@ -1349,17 +1488,10 @@ function getDraftCommands(draft) {
     if (draft.power) cmds.push({ action: draft.power });
     if (draft.input) cmds.push({ action: 'input', value: draft.input });
     if (draft.volume !== '' && draft.volume !== null && draft.volume !== undefined) cmds.push({ action: 'volume', value: parseInt(draft.volume) });
-    if (draft.channel !== '' && draft.channel !== null && draft.channel !== undefined) cmds.push({ action: 'channel', value: parseInt(draft.channel) });
   }
   if (draft.schedulePlay) cmds.push({ action: 'schedule_play' });
   if (draft.streaming) cmds.push({ action: 'streaming', value: String(draft.streamingUrl || '').trim() });
   return cmds.filter(cmd => cmd.action && !(Number.isNaN(cmd.value)));
-}
-
-function shouldShowTvChannel(draft, mdc) {
-  if (draft?.tvRestart) return false;
-  if (draft?.input) return draft.input === 'tv';
-  return mdc?.input === 0x00;
 }
 
 function shouldShowFollowupControls(draft) {
@@ -1383,6 +1515,9 @@ function renderBulkToolbar() {
   const el = document.getElementById('bulkToolbar');
   if (!el) return;
   const stats = getBulkTargetStats();
+  const zoneLabel = state.currentControlZone && state.currentControlZone !== '전체' ? state.currentControlZone : '전체';
+  const visible = getVisibleDisplays();
+  const allVisibleSelected = visible.length > 0 && visible.every((display) => state.selectedDisplayIds.has(display.id));
   const batch = state.bulkJob;
   const actionValue = batch?.action || 'wol';
   const progress = batch ? Math.round(((batch.summary.success + batch.summary.failed) / Math.max(1, batch.requested)) * 100) : 0;
@@ -1394,10 +1529,9 @@ function renderBulkToolbar() {
           <small>온라인 ${stats.onlineCount}대 · 전원 켜기 가능 ${stats.wolReadyCount}대</small>
         </div>
         <div class="bulk-chip-row">
-          <button class="bulk-chip" onclick="selectDisplaysByMode('visible')">현재 구역 전체</button>
+          <button class="bulk-chip" onclick="toggleVisibleDisplaySelection()">${allVisibleSelected ? `${zoneLabel} 선택 해제` : `${zoneLabel} 전체 선택`}</button>
           <button class="bulk-chip" onclick="selectDisplaysByMode('online')">현재 구역 온라인만</button>
           <button class="bulk-chip" onclick="selectDisplaysByMode('wol')">현재 구역 전원 켜기 가능</button>
-          <button class="bulk-chip" onclick="clearSelectedDisplays()">선택 해제</button>
         </div>
       </div>
       <div class="bulk-toolbar-actions">
@@ -1409,7 +1543,6 @@ function renderBulkToolbar() {
           <option value="tv_restart" ${actionValue==='tv_restart'?'selected':''}>TV 재시작</option>
           <option value="input" ${actionValue==='input'?'selected':''}>입력 전환</option>
           <option value="volume" ${actionValue==='volume'?'selected':''}>볼륨 설정</option>
-          <option value="channel" ${actionValue==='channel'?'selected':''}>TV 채널 이동</option>
         </select>
         <select id="bulkInputValue" style="display:none;">
           <option value="hdmi1">HDMI 1</option>
@@ -1421,10 +1554,9 @@ function renderBulkToolbar() {
         <select id="bulkVolumeValue" style="display:none;">
           ${Array.from({ length: 21 }, (_, i) => {
             const v = i * 5;
-            return `<option value="${v}" ${v===20?'selected':''}>볼륨 ${v}</option>`;
+            return `<option value="${v}" ${v===20?'selected':''}>${v}</option>`;
           }).join('')}
         </select>
-        <input id="bulkNumberValue" type="number" style="display:none;" placeholder="채널 번호">
         <input id="bulkStreamUrl" type="text" style="display:none;min-width:240px;" placeholder="udp://@239.0.0.1:1234">
         <button class="btn btn-accent" onclick="executeBulkAction()" ${stats.selectedCount ? '' : 'disabled'}>선택 기기 실행</button>
       </div>
@@ -1478,19 +1610,12 @@ function renderBulkToolbar() {
 function updateBulkActionUI() {
   const action = document.getElementById('bulkAction')?.value;
   const inputEl = document.getElementById('bulkInputValue');
-  const numEl = document.getElementById('bulkNumberValue');
   const volumeEl = document.getElementById('bulkVolumeValue');
   const streamEl = document.getElementById('bulkStreamUrl');
-  if (!inputEl || !numEl || !volumeEl || !streamEl) return;
+  if (!inputEl || !volumeEl || !streamEl) return;
   inputEl.style.display = action === 'input' ? '' : 'none';
   volumeEl.style.display = action === 'volume' ? '' : 'none';
-  numEl.style.display = action === 'channel' ? '' : 'none';
   streamEl.style.display = action === 'streaming' ? '' : 'none';
-  if (action === 'channel') {
-    numEl.placeholder = '1~999';
-    numEl.min = '1';
-    numEl.max = '999';
-  }
 }
 
 function selectDisplaysByMode(mode) {
@@ -1504,10 +1629,21 @@ function selectDisplaysByMode(mode) {
   if (state.dashData) renderDevicePanes(state.dashData.displays, state.dashData.online, state.dashData.schedules, state.dashData.channels);
 }
 
-function clearSelectedDisplays() {
-  state.selectedDisplayIds = new Set();
+function toggleVisibleDisplaySelection() {
+  const visible = getVisibleDisplays();
+  if (!visible.length) return;
+  const allSelected = visible.every((display) => state.selectedDisplayIds.has(display.id));
+  if (allSelected) {
+    visible.forEach((display) => state.selectedDisplayIds.delete(display.id));
+  } else {
+    visible.forEach((display) => state.selectedDisplayIds.add(display.id));
+  }
   renderBulkToolbar();
   if (state.dashData) renderDevicePanes(state.dashData.displays, state.dashData.online, state.dashData.schedules, state.dashData.channels);
+}
+
+function refreshControlDashboard() {
+  loadDashboard();
 }
 
 function toggleDisplaySelection(id, checked) {
@@ -1538,10 +1674,6 @@ async function executeBulkAction() {
   if (action === 'volume') {
     value = parseInt(document.getElementById('bulkVolumeValue').value || '');
     if (Number.isNaN(value)) return toast('볼륨 값을 선택하세요', 'error');
-  }
-  if (action === 'channel') {
-    value = parseInt(document.getElementById('bulkNumberValue').value || '');
-    if (Number.isNaN(value)) return toast('값을 입력하세요', 'error');
   }
   if (action === 'power_off' || action === 'tv_restart') {
     const ok = await uiConfirm(`${getActionLabel(action)}을(를) ${ids.length}대에 실행하시겠습니까?`, '일괄 제어 확인');
@@ -1634,6 +1766,8 @@ function renderZones(displays, online, schedules, channels, mode = 'monitor') {
 
   detail.innerHTML = `<div class="device-card-grid">${
     viewDisplays.map(d => {
+      const isPc = (d.deviceType || 'signage') !== 'signage';
+      const isWelcomeBoardPc = (d.deviceType || 'signage') === 'welcome_board_pc';
       const p   = online.find(o => o.ip === d.ip);
       const isOn = !!p;
       const mdc  = state.mdcStatus[d.ip] || {};
@@ -1659,14 +1793,35 @@ function renderZones(displays, online, schedules, channels, mode = 'monitor') {
       const channelInfo = (channelList || []).find(c => c.id === d.channelId);
       const channelName = channelInfo ? channelInfo.name : '채널 미배정';
       const scheduleName = getChannelScheduleLabel(channelInfo) || '연결된 스케줄 없음';
+      const output = d.output || {};
+      const outputCanvas = output.canvas || {};
+      const outputRect = output.rect || {};
+      const outputText = isWelcomeBoardPc
+        ? `송출 화면 ${outputCanvas.width || outputRect.width || 3840}x${outputCanvas.height || outputRect.height || 2160}`
+        : '';
       const playbackProfile = d.playbackProfile || 'balanced';
       const playbackProfileLabel = getPlaybackProfileLabel(playbackProfile);
       const draft = isControl ? getControlDraft(d.id) : null;
-      const showTvChannel = isControl ? shouldShowTvChannel(draft, mdc) : false;
       const showFollowups = isControl ? shouldShowFollowupControls(draft) : false;
       const hbAgeSec = (p && typeof p.heartbeatAgeMs === 'number') ? Math.max(0, Math.round(p.heartbeatAgeMs / 1000)) : null;
       const hbText = hbAgeSec === null ? 'HB 미수신' : `HB ${hbAgeSec}s`;
       const hbTagClass = !isOn ? 'tag-offline' : (p?.heartbeatStale ? 'tag-offline' : 'tag-online');
+      const playerInfo = p?.player || null;
+      const playerReady = playerInfo?.ready === true ? '준비됨' : playerInfo?.ready === false ? '준비 안 됨' : '준비 상태 미수신';
+      const playerPlayback = playerInfo?.playback || 'unknown';
+      const playerCurrent = playerInfo?.currentFilename || playerInfo?.currentType || '';
+      const playerError = playerInfo?.lastError || '';
+      const playerApp = playerInfo?.appType
+        ? `${playerInfo.appType}${playerInfo.appVersion ? ` ${playerInfo.appVersion}` : ''}`
+        : '';
+      const playerStatusBox = playerInfo ? `
+        <div class="control-plan-preview" style="margin:0 0 8px 0;">
+          <div>플레이어: <b>${escapeHtml(playerReady)}</b> · ${escapeHtml(playerPlayback)}</div>
+          ${playerCurrent ? `<div>현재: <b>${escapeHtml(playerCurrent)}</b></div>` : ''}
+          ${playerApp ? `<div>앱: ${escapeHtml(playerApp)}</div>` : ''}
+          ${playerError ? `<div style="color:var(--danger);">에러: ${escapeHtml(playerError)}</div>` : ''}
+        </div>
+      ` : '';
 
       return `
         <div class="device-card ${isOn?'is-online':'is-offline'}">
@@ -1685,6 +1840,7 @@ function renderZones(displays, online, schedules, channels, mode = 'monitor') {
                   ${d.location || '구역 없음'}
                 </span>
                 &nbsp;·&nbsp; <code style="font-size:11px;">${d.ip}</code>
+                ${isWelcomeBoardPc ? '&nbsp;·&nbsp; 웰컴보드 PC' : isPc ? '&nbsp;·&nbsp; PC' : ''}
               </div>
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
@@ -1694,6 +1850,7 @@ function renderZones(displays, online, schedules, channels, mode = 'monitor') {
           </div>
           ${bulkBadge}
           ${deviceBadge}
+          ${playerStatusBox}
 
           <!-- MDC 상태 표시 -->
           <div class="mdc-status-bar">
@@ -1709,21 +1866,26 @@ function renderZones(displays, online, schedules, channels, mode = 'monitor') {
               <option value="">-- 채널 미배정 --</option>
               ${chOpts}
             </select>
-            <select style="width:100%;padding:6px;font-size:12px;border-radius:6px;border:1px solid var(--border);margin-bottom:8px;"
+            ${isPc ? '' : `<select style="width:100%;padding:6px;font-size:12px;border-radius:6px;border:1px solid var(--border);margin-bottom:8px;"
               onchange="updateDevicePlaybackProfile('${d.id}',this.value)">
               <option value="balanced" ${playbackProfile==='balanced'?'selected':''}>재생 프로필: 균형형 (권장)</option>
               <option value="stable" ${playbackProfile==='stable'?'selected':''}>재생 프로필: 안정형</option>
               <option value="low_latency" ${playbackProfile==='low_latency'?'selected':''}>재생 프로필: 저지연형</option>
-            </select>
+            </select>`}
+            ${isWelcomeBoardPc ? `<div class="control-plan-preview" style="margin-top:0;margin-bottom:8px;">
+              출력: <b>${escapeHtml(outputText)}</b>
+              <button class="btn-action" style="font-size:10px;padding:0 6px;margin-left:5px;" onclick="editWelcomeBoardOutput('${d.id}')">수정</button>
+            </div>` : ''}
 
             <div class="control-plan-box" style="margin-top:0;margin-bottom:10px;">
               <div class="control-plan-title">실행 항목</div>
               <div class="control-toggle-row">
-                <button class="control-toggle ${draft.wol?'active':''}" onclick="toggleControlDraftFlag('${d.id}','wol')" ${d.mac?'':'disabled'}>전원 켜기</button>
-                <button class="control-toggle ${draft.power==='power_off'?'active':''}" onclick="setPowerDraft('${d.id}','power_off')">전원 OFF</button>
                 <button class="control-toggle ${draft.schedulePlay?'active':''}" onclick="toggleControlDraftFlag('${d.id}','schedulePlay')">스케줄 재생</button>
                 <button class="control-toggle ${draft.streaming?'active':''}" onclick="toggleControlDraftFlag('${d.id}','streaming')">스트리밍</button>
-                <button class="control-toggle ${draft.tvRestart?'active':''}" onclick="toggleControlDraftFlag('${d.id}','tvRestart')">TV 재시작</button>
+                ${isPc ? '' : `
+                <button class="control-toggle ${draft.wol?'active':''}" onclick="toggleControlDraftFlag('${d.id}','wol')" ${d.mac?'':'disabled'}>전원 켜기</button>
+                <button class="control-toggle ${draft.power==='power_off'?'active':''}" onclick="setPowerDraft('${d.id}','power_off')">전원 OFF</button>
+                <button class="control-toggle ${draft.tvRestart?'active':''}" onclick="toggleControlDraftFlag('${d.id}','tvRestart')">TV 재시작</button>`}
               </div>
               <div class="device-ctrl-row" style="${draft.streaming ? '' : 'display:none;'} margin-top:6px;">
                 <label>스트리밍 URL</label>
@@ -1737,7 +1899,7 @@ function renderZones(displays, online, schedules, channels, mode = 'monitor') {
               </div>
             </div>
 
-            <div class="device-ctrl-section" style="${showFollowups ? '' : 'opacity:.65;'}">
+            ${isPc ? '' : `<div class="device-ctrl-section" style="${showFollowups ? '' : 'opacity:.65;'}">
               <div class="control-plan-title" style="margin-bottom:4px;">전원 켠 뒤 후속 제어</div>
               ${showFollowups ? '' : `<div class="control-plan-preview" style="margin-top:0;margin-bottom:6px;">전원 켜기 또는 TV 재시작을 선택하면 함께 실행됩니다.</div>`}
               <div class="device-ctrl-row">
@@ -1757,27 +1919,26 @@ function renderZones(displays, online, schedules, channels, mode = 'monitor') {
                   value="${draft.volume !== '' ? draft.volume : ''}" placeholder="0~100" onchange="updateControlDraftField('${d.id}','volume',this.value)">
                 <button class="btn-action" onclick="clearControlDraftField('${d.id}','volume')">지움</button>
               </div>
-              <div class="device-ctrl-row" style="${showTvChannel ? '' : 'display:none;'}">
-                <label>TV 채널</label>
-                <input type="number" id="tvc_${d.id}" min="1" max="999" value="${draft.channel !== '' ? draft.channel : ''}" placeholder="채널번호" onchange="updateControlDraftField('${d.id}','channel',this.value)">
-                <button class="btn-action" onclick="clearControlDraftField('${d.id}','channel')">지움</button>
-              </div>
-            </div>
-            ${d.mac
+            </div>`}
+            ${!isPc && d.mac
               ? `<div style="font-size:10px;color:#bbb;margin-top:6px;">MAC: ${d.mac}</div>`
-              : `<div style="font-size:10px;color:#ddd;margin-top:6px;cursor:pointer;" onclick="editField('${d.id}','mac','')">+ MAC 주소 등록 (전원 켜기)</div>`}
-            <div style="font-size:10px;color:#bbb;margin-top:4px;">
+              : (!isPc ? `<div style="font-size:10px;color:#ddd;margin-top:6px;cursor:pointer;" onclick="editField('${d.id}','mac','')">+ MAC 주소 등록 (전원 켜기)</div>` : '')}
+            ${isPc ? '' : `<div style="font-size:10px;color:#bbb;margin-top:4px;">
               DUID: <b style="color:var(--text);">${escapeHtml(d.duid || '미등록')}</b>
               <button class="btn-action" style="font-size:10px;padding:0 6px;margin-left:5px;" onclick="editField('${d.id}','duid','${(d.duid||'').replace(/'/g,"\\'")}')">✎</button>
-            </div>
+            </div>`}
           ` : `
             <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);">
               <div>채널: <b style="color:var(--text);">${channelName}</b></div>
               <div>스케줄: <b style="color:var(--text);">${scheduleName}</b></div>
-              <div>재생 프로필: <b style="color:var(--text);">${playbackProfileLabel}</b></div>
+              ${isPc ? '' : `<div>재생 프로필: <b style="color:var(--text);">${playbackProfileLabel}</b></div>`}
+              ${isWelcomeBoardPc ? `<div>출력: <b style="color:var(--text);">${escapeHtml(outputText)}</b> <button class="btn-action" style="font-size:10px;padding:0 6px;margin-left:5px;" onclick="editWelcomeBoardOutput('${d.id}')">수정</button></div>` : ''}
               <div>CMS 연결: <b style="color:${isOn?'var(--online)':'var(--danger)'};">${isOn?'연결됨':'미연결'}</b></div>
-              <div>MAC: <b style="color:var(--text);">${d.mac || '미등록'}</b></div>
-              <div>DUID: <b style="color:var(--text);">${escapeHtml(d.duid || '미등록')}</b> <button class="btn-action" style="font-size:10px;padding:0 6px;margin-left:5px;" onclick="editField('${d.id}','duid','${(d.duid||'').replace(/'/g,"\\'")}')">✎</button></div>
+              ${isPc ? '' : `<div>MAC: <b style="color:var(--text);">${d.mac || '미등록'}</b></div>`}
+              ${isPc ? '' : `<div>DUID: <b style="color:var(--text);">${escapeHtml(d.duid || '미등록')}</b> <button class="btn-action" style="font-size:10px;padding:0 6px;margin-left:5px;" onclick="editField('${d.id}','duid','${(d.duid||'').replace(/'/g,"\\'")}')">✎</button></div>`}
+              <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+                <button class="btn-action" onclick="deleteDisplay('${d.id}')" style="color:var(--danger);">삭제</button>
+              </div>
             </div>
           `}
         </div>`;
@@ -1870,19 +2031,131 @@ async function editField(id, field, currentVal) {
     .catch(e => toast(e.message, 'error'));
 }
 
+function toPositiveInt(value, fallback) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function toInt(value, fallback) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function setOutputInputs(output = {}) {
+  const canvas = output.canvas || {};
+  document.getElementById('modalCanvasWidth').value = toPositiveInt(canvas.width, 3840);
+  document.getElementById('modalCanvasHeight').value = toPositiveInt(canvas.height, 2160);
+}
+
+function readOutputInputs() {
+  const width = toPositiveInt(document.getElementById('modalCanvasWidth')?.value, 3840);
+  const height = toPositiveInt(document.getElementById('modalCanvasHeight')?.value, 2160);
+  return {
+    mode: 'rect',
+    canvas: { width, height },
+    rect: { x: 0, y: 0, width, height }
+  };
+}
+
+function resetRegisterModalPosition() {
+  const box = document.getElementById('registerModalBox');
+  if (!box) return;
+  box.classList.remove('is-draggable');
+  box.style.left = '';
+  box.style.top = '';
+  box.style.transform = '';
+}
+
+function clampRegisterModalPosition(left, top) {
+  const box = document.getElementById('registerModalBox');
+  if (!box) return { left, top };
+  const margin = 8;
+  const rect = box.getBoundingClientRect();
+  const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin);
+  const maxTop = Math.max(margin, window.innerHeight - rect.height - margin);
+  return {
+    left: Math.min(Math.max(margin, left), maxLeft),
+    top: Math.min(Math.max(margin, top), maxTop)
+  };
+}
+
+function startRegisterModalDrag(event) {
+  if (event.button !== 0) return;
+  if (event.target.closest('button,input,select,textarea')) return;
+  const box = document.getElementById('registerModalBox');
+  if (!box) return;
+  const rect = box.getBoundingClientRect();
+  box.classList.add('is-draggable');
+  box.style.left = `${rect.left}px`;
+  box.style.top = `${rect.top}px`;
+  _registerModalDrag = {
+    startX: event.clientX,
+    startY: event.clientY,
+    left: rect.left,
+    top: rect.top
+  };
+  document.addEventListener('mousemove', onRegisterModalDragMove, true);
+  document.addEventListener('mouseup', stopRegisterModalDrag, true);
+  event.preventDefault();
+}
+
+function onRegisterModalDragMove(event) {
+  if (!_registerModalDrag) return;
+  const box = document.getElementById('registerModalBox');
+  if (!box) return;
+  const next = clampRegisterModalPosition(
+    _registerModalDrag.left + event.clientX - _registerModalDrag.startX,
+    _registerModalDrag.top + event.clientY - _registerModalDrag.startY
+  );
+  box.style.left = `${next.left}px`;
+  box.style.top = `${next.top}px`;
+}
+
+function stopRegisterModalDrag() {
+  _registerModalDrag = null;
+  document.removeEventListener('mousemove', onRegisterModalDragMove, true);
+  document.removeEventListener('mouseup', stopRegisterModalDrag, true);
+}
+
+
 // ── 모달 등록
+function setRegisterDeviceType(type) {
+  state.registerDeviceType = type === 'welcome_board_pc' ? 'welcome_board_pc' : (type === 'pc' || type === 'pc_web' ? 'pc_web' : 'signage');
+  const isPc = state.registerDeviceType !== 'signage';
+  const isWelcome = state.registerDeviceType === 'welcome_board_pc';
+  document.getElementById('modalTypeSignage')?.classList.toggle('active', !isPc);
+  document.getElementById('modalTypePc')?.classList.toggle('active', state.registerDeviceType === 'pc_web');
+  document.getElementById('modalTypeWelcome')?.classList.toggle('active', isWelcome);
+  const macGroup = document.getElementById('modalMacGroup');
+  const profileGroup = document.getElementById('modalPlaybackProfileGroup');
+  const outputGroup = document.getElementById('modalOutputGroup');
+  if (macGroup) macGroup.style.display = isPc ? 'none' : '';
+  if (profileGroup) profileGroup.style.display = isPc ? 'none' : '';
+  if (outputGroup) outputGroup.style.display = isWelcome ? '' : 'none';
+}
+
 function openRegModal(ip) {
+  state.registerDeviceType = 'signage';
+  resetRegisterModalPosition();
   document.getElementById('modalIp').value = ip || '';
   document.getElementById('modalName').value = '';
   document.getElementById('modalZone').value = '';
   document.getElementById('modalMac').value = '';
   document.getElementById('modalChannel').value = '';
   document.getElementById('modalPlaybackProfile').value = 'balanced';
+  setOutputInputs({
+    canvas: { width: 3840, height: 2160 }
+  });
+  setRegisterDeviceType('signage');
   document.getElementById('registerModal').style.display = 'flex';
   setTimeout(() => document.getElementById('modalName').focus(), 50);
 }
-function closeRegModal() { document.getElementById('registerModal').style.display = 'none'; }
-function modalOverlayClick(e) { if (e.target === e.currentTarget) closeRegModal(); }
+function closeRegModal() {
+  stopRegisterModalDrag();
+  document.getElementById('registerModal').style.display = 'none';
+  resetRegisterModalPosition();
+}
+function modalOverlayClick(e) { return; }
 
 async function submitRegModal() {
   const ip   = document.getElementById('modalIp').value.trim();
@@ -1891,9 +2164,20 @@ async function submitRegModal() {
   const mac  = document.getElementById('modalMac').value.trim();
   const chId = document.getElementById('modalChannel').value;
   const playbackProfile = document.getElementById('modalPlaybackProfile').value || 'balanced';
+  const deviceType = state.registerDeviceType === 'welcome_board_pc' ? 'welcome_board_pc' : (state.registerDeviceType === 'pc_web' ? 'pc_web' : 'signage');
+  const output = deviceType === 'welcome_board_pc' ? readOutputInputs() : undefined;
   if (!name || !ip) return toast('이름과 IP는 필수입니다', 'error');
   try {
-    await api('POST', '/api/displays', { name, ip, location: zone, mac, channelId: chId || null, playbackProfile });
+    await api('POST', '/api/displays', {
+      name,
+      ip,
+      location: zone,
+      deviceType,
+      mac: deviceType === 'signage' ? mac : '',
+      channelId: chId || null,
+      playbackProfile: deviceType === 'signage' ? playbackProfile : 'balanced',
+      output
+    });
     toast('기기 등록 완료');
     closeRegModal();
     loadDashboard();
@@ -1932,6 +2216,36 @@ async function updateDevicePlaybackProfile(id, playbackProfile) {
       if (d) d.playbackProfile = playbackProfile;
       renderDevicePanes(state.dashData.displays, state.dashData.online, state.dashData.schedules, state.dashData.channels);
     }
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function editWelcomeBoardOutput(id) {
+  const d = state.dashData?.displays?.find(x => x.id === id);
+  if (!d) return;
+  const canvas = d.output?.canvas || {};
+  const curW = canvas.width || 3840;
+  const curH = canvas.height || 2160;
+  const raw = await uiPrompt('모니터 해상도 (가로×세로, 예: 3840x2160)', `${curW}x${curH}`);
+  if (raw === null) return;
+  const parts = String(raw).trim().split(/[xX×,\s]+/);
+  const w = toPositiveInt(parts[0], curW);
+  const h = toPositiveInt(parts[1], curH);
+  if (!w || !h || parts.length < 2) {
+    toast('형식이 올바르지 않습니다. 예: 3840x2160', 'error');
+    return;
+  }
+  const output = {
+    mode: 'rect',
+    canvas: { width: w, height: h },
+    rect: { x: 0, y: 0, width: w, height: h }
+  };
+  try {
+    await api('PUT', `/api/displays/${id}`, { output });
+    d.output = output;
+    toast(`모니터 해상도 ${w}×${h} 변경 완료`);
+    renderDevicePanes(state.dashData.displays, state.dashData.online, state.dashData.schedules, state.dashData.channels);
   } catch (e) {
     toast(e.message, 'error');
   }
@@ -2016,12 +2330,16 @@ function renderMediaGrid(groupId) {
   const titleEl = document.getElementById('currentGroupTitle');
   if (titleEl) titleEl.textContent = title;
   grid.innerHTML = files.map(f => {
-    const disp = (f.label || (f.type === 'web' ? (f.webUrl || '웹 콘텐츠') : f.filename.replace(/^\d+_/, '')));
+    const isDesignerContent = f.type === 'web' && f.webKind === 'designer';
+    const disp = (f.label || (isDesignerContent ? '배치형 콘텐츠' : (f.type === 'web' ? (f.webUrl || '웹 콘텐츠') : f.filename.replace(/^\d+_/, ''))));
     const thumb = f.type === 'web'
-      ? `<div style="display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;width:100%;height:110px;background:#0f1722;color:#9fb3c8;font-size:12px;">${f.webKind === 'designer' ? '▦' : '🌐'}<span>${f.webKind === 'designer' ? 'LAYOUT' : 'WEB'}</span></div>`
+      ? getWebPreviewMarkup(f, 110)
       : f.type === 'video'
       ? `<video src="/media/${f.filename}" preload="metadata" controls style="width:100%;height:110px;object-fit:cover;display:block;background:#000;"></video>`
       : `<img src="/media/${f.filename}" loading="lazy">`;
+    const typeLabel = Number.isFinite(Number(f.size)) && Number(f.size) > 0
+      ? `${(Number(f.size)/1024/1024).toFixed(1)}MB`
+      : '-';
     return `<div class="media-card">
       <div class="media-thumb" style="${f.type==='video'?'height:auto;':''}">
         ${thumb}
@@ -2033,15 +2351,31 @@ function renderMediaGrid(groupId) {
           ${state.groups.map(g => { const inG = g.files.some(gf=>(gf.filename||gf)===f.filename); return `<option value="${g.id}" ${inG?'selected':''}>${g.name}</option>`; }).join('')}
         </select>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:6px;">
-          <small style="color:var(--muted);">${f.type==='web' ? 'WEB' : `${(f.size/1024/1024).toFixed(1)}MB`}</small>
+          <small style="color:var(--muted);">${typeLabel}</small>
           <div style="display:flex;gap:6px;">
-            <button class="btn-action" onclick="editMedia('${f.filename}')" style="font-size:11px;">수정</button>
-            <button class="btn-action" onclick="deleteMedia('${f.filename}')" style="color:var(--danger);">삭제</button>
+            <button class="btn-action" onclick="toggleMediaMute('${f.filename}')" style="font-size:11px;${f.muted ? 'color:var(--danger);border-color:var(--danger);font-weight:700;' : ''}">${f.muted ? '음소거 ON' : '음소거 OFF'}</button>
+            <button class="btn-action" onclick="openMediaActionMenu(event,'${f.filename}')" style="font-size:14px;line-height:1;padding:1px 8px;">⋯</button>
           </div>
         </div>
       </div>
     </div>`;
   }).join('') || '<div style="padding:40px;text-align:center;color:#aaa;grid-column:1/-1;">파일 없음</div>';
+}
+
+function getPreviewableWebUrl(item) {
+  const url = String(item?.webUrl || '').trim();
+  if (!url) return '';
+  if (item?.webKind === 'designer') return url;
+  if (url.startsWith('/')) return url;
+  return '';
+}
+
+function getWebPreviewMarkup(item, height = 110) {
+  const previewUrl = getPreviewableWebUrl(item);
+  if (previewUrl) {
+    return `<iframe src="${escapeHtml(previewUrl)}" loading="lazy" style="width:100%;height:${height}px;background:#fff;pointer-events:none;"></iframe>`;
+  }
+  return `<div style="display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;width:100%;height:${height}px;background:#0f1722;color:#9fb3c8;font-size:12px;">🌐<span>WEB</span></div>`;
 }
 
 function selectGroup(id, el) {
@@ -2076,6 +2410,56 @@ async function moveToGroup(filename, groupId) {
   state.mediaList = files; state.groups = grpData.groups;
   renderGroupPanel(); renderMediaGrid(state.currentGroup);
   toast('그룹 변경 완료');
+}
+
+async function toggleMediaMute(filename) {
+  const item = (state.mediaList || []).find((entry) => entry.filename === filename);
+  if (!item) return;
+  const nextMuted = !item.muted;
+  if (item.type === 'web') {
+    const webId = String(filename || '').startsWith('web:') ? String(filename).slice(4) : '';
+    if (!webId) {
+      toast('웹 콘텐츠 정보를 찾을 수 없습니다', 'error');
+      return;
+    }
+    const path = item.webKind === 'designer'
+      ? `/api/designer-contents/${encodeURIComponent(webId)}`
+      : `/api/web-contents/${encodeURIComponent(webId)}`;
+    await api('PUT', path, {
+      name: item.label || '웹 콘텐츠',
+      url: item.webUrl || '',
+      designer: item.designer || undefined,
+      muted: nextMuted
+    });
+  } else {
+    await api('PUT', `/api/media/${encodeURIComponent(filename)}`, { muted: nextMuted });
+  }
+  await loadMedia();
+  toast(nextMuted ? '콘텐츠 음소거를 켰습니다' : '콘텐츠 음소거를 해제했습니다');
+}
+
+function openMediaActionMenu(event, filename) {
+  const item = (state.mediaList || []).find((entry) => entry.filename === filename);
+  if (!item) return;
+  openInlineMenu(event, [
+    { label: '수정', onClick: () => editMedia(filename) },
+    { label: '삭제', danger: true, onClick: () => deleteMedia(filename) }
+  ]);
+}
+
+function triggerDirectUpload() {
+  const input = document.getElementById('fileInput');
+  if (input) input.click();
+}
+
+async function onDirectFilesSelected(files) {
+  if (!files || !files.length) return;
+  try {
+    await uploadFiles(files);
+  } finally {
+    const input = document.getElementById('fileInput');
+    if (input) input.value = '';
+  }
 }
 
 async function uploadFiles(files, options = {}) {
@@ -2130,6 +2514,9 @@ async function openUploadModal() {
   state.uploadDesigner.open = true;
   state.uploadDesigner.editingId = null;
   state.uploadDesigner.editingMediaFilename = null;
+  state.uploadDesigner.targetGroupId = state.currentGroup || null;
+  state.uploadDesigner.mode = 'standard';
+  state.uploadDesigner.welcomeDisplayId = null;
   state.uploadDesigner.contentName = '';
   state.uploadDesigner.orientation = 'landscape';
   state.uploadDesigner.split = 1;
@@ -2139,16 +2526,21 @@ async function openUploadModal() {
   state.uploadDesigner.placements = [];
   state.uploadDesigner.objectUrls = {};
   document.getElementById('uploadDesignerOverlay').style.display = 'flex';
+  renderDesignerGroupOptions();
   syncDesignerPillUI();
   resetDesignerLayout();
 }
 
 function closeUploadDesigner(e) {
-  if (e && e.target !== e.currentTarget) return;
+  if (e) return;
+  if (Date.now() < (state.uploadDesigner.closeGuardUntil || 0)) return;
   document.getElementById('uploadDesignerOverlay').style.display = 'none';
   state.uploadDesigner.open = false;
   state.uploadDesigner.editingId = null;
   state.uploadDesigner.editingMediaFilename = null;
+  state.uploadDesigner.targetGroupId = null;
+  state.uploadDesigner.mode = 'standard';
+  state.uploadDesigner.welcomeDisplayId = null;
   state.uploadDesigner.contentName = '';
   Object.values(state.uploadDesigner.objectUrls || {}).forEach((url) => {
     try { URL.revokeObjectURL(url); } catch {}
@@ -2171,6 +2563,95 @@ function setDesignerSplit(split) {
   state.uploadDesigner.split = [1, 2, 3, 4].includes(split) ? split : 1;
   syncDesignerPillUI();
   resetDesignerLayout();
+}
+
+function setDesignerMode(mode) {
+  const ds = state.uploadDesigner;
+  const prevMode = ds.mode || 'standard';
+  ds.mode = mode === 'welcome' ? 'welcome' : 'standard';
+  if (ds.mode === 'welcome') {
+    ds.orientation = 'landscape';
+    (ds.placements || []).forEach(p => { p.aspectRatio = null; });
+    if (prevMode !== 'welcome' || !ds.stageSize?.w || !ds.stageSize?.h) {
+      ds.stageSize = { w: 3840, h: 2160 };
+      resetDesignerLayout();
+    }
+  } else if (prevMode === 'welcome') {
+    ds.orientation = 'landscape';
+    ds.stageSize = { w: 960, h: 540 };
+    resetDesignerLayout();
+  }
+  syncDesignerPillUI();
+  renderDesignerStage();
+  syncDesignerSummary();
+}
+
+function toggleDesignerWelcomeMode() {
+  const next = state.uploadDesigner.mode === 'welcome' ? 'standard' : 'welcome';
+  setDesignerMode(next);
+}
+
+async function loadWelcomeBoardResolution() {
+  const ds = state.uploadDesigner;
+  try {
+    const data = await api('GET', '/api/displays');
+    const displays = (data.displays || []).filter(d => d.deviceType === 'welcome_board_pc');
+    if (!displays.length) {
+      toast('등록된 웰컴보드 PC가 없습니다', 'error');
+      return;
+    }
+    const selectedId = await uiModalOpen({
+      title: '웰컴보드 PC 선택',
+      message: '콘텐츠를 표출할 웰컴보드 PC를 선택하세요.',
+      selectField: {
+        label: '웰컴보드 PC',
+        value: ds.welcomeDisplayId || displays[0].id,
+        options: displays.map((d) => {
+          const canvas = d.output?.canvas || {};
+          const cw = canvas.width || 3840;
+          const ch = canvas.height || 2160;
+          return { value: d.id, label: `${d.name || d.ip} · 송출 화면 ${cw}×${ch}` };
+        })
+      },
+      okText: '불러오기',
+      cancelText: '취소'
+    });
+    if (!selectedId) return;
+    const display = displays.find(d => d.id === selectedId);
+    if (!display) return;
+    const canvas = display.output?.canvas || {};
+    const canvasW = Math.round(Number(canvas.width || 3840));
+    const canvasH = Math.round(Number(canvas.height || 2160));
+    if (!canvasW || !canvasH) {
+      toast('웰컴보드 해상도 정보가 없습니다', 'error');
+      return;
+    }
+    ds.mode = 'welcome';
+    ds.welcomeDisplayId = display.id;
+    ds.orientation = canvasW >= canvasH ? 'landscape' : 'portrait';
+    ds.stageSize = { w: canvasW, h: canvasH };
+    ds.placements = [{
+      id: 1,
+      x: 0,
+      y: 0,
+      w: 1,
+      h: 1,
+      fileIdx: ds.files.length > 0 ? 0 : null,
+      fit: 'cover',
+      focusX: 50,
+      focusY: 50,
+      zoom: 100,
+      aspectRatio: null
+    }];
+    ds.activeSlotIdx = 0;
+    syncDesignerPillUI();
+    renderDesignerLibrary();
+    renderDesignerStage();
+    syncDesignerSummary();
+    toast(`웰컴보드 송출 화면 ${canvasW}×${canvasH} 불러옴`);
+  } catch (e) {
+    toast(e.message || '웰컴보드 해상도 불러오기 실패', 'error');
+  }
 }
 
 function addDesignerArea() {
@@ -2237,9 +2718,168 @@ function applyAspectRatioToPlacement(p, stageSize) {
   p.h = Math.max(0.12, Math.min(maxH, h));
 }
 
+// ── 레이아웃 프리셋 ──────────────────────────────────
+let _layoutPresets = [];
+
+async function loadLayoutPresets() {
+  try {
+    const data = await api('GET', '/api/layout-presets');
+    _layoutPresets = Array.isArray(data.presets) ? data.presets : [];
+  } catch (_) {
+    _layoutPresets = [];
+  }
+  renderLayoutPresetList();
+}
+
+function renderLayoutPresetList() {
+  const list = document.getElementById('layoutPresetList');
+  if (!list) return;
+  if (!_layoutPresets.length) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:4px;">저장된 프리셋이 없습니다.</div>';
+    return;
+  }
+  list.innerHTML = _layoutPresets.map(p => {
+    const cw = p.canvas?.width || '?';
+    const ch = p.canvas?.height || '?';
+    const rw = p.rect?.width || cw;
+    const rh = p.rect?.height || ch;
+    const rx = p.rect?.x || 0;
+    const ry = p.rect?.y || 0;
+    return `<div style="display:flex;align-items:center;gap:4px;padding:4px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(p.name)}">
+        <b>${escapeHtml(p.name)}</b><br>
+        <span style="color:var(--muted);">${cw}×${ch} / 영역 ${rw}×${rh} @ ${rx},${ry}</span>
+      </div>
+      <button class="btn-action" style="padding:2px 7px;font-size:11px;" onclick="applyLayoutPreset('${p.id}')">불러오기</button>
+      <button class="btn-action" style="padding:2px 7px;font-size:11px;" onclick="renameLayoutPreset('${p.id}')">수정</button>
+      <button class="btn-action" style="padding:2px 7px;font-size:11px;color:var(--danger);" onclick="deleteLayoutPreset('${p.id}')">삭제</button>
+    </div>`;
+  }).join('');
+}
+
+function toggleLayoutPresetPanel() {
+  const panel = document.getElementById('layoutPresetPanel');
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  if (!isOpen) {
+    loadLayoutPresets();
+    panel.style.display = '';
+    setTimeout(() => {
+      document.addEventListener('click', closeLayoutPresetPanel, { once: true, capture: true });
+    }, 0);
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+function closeLayoutPresetPanel(e) {
+  const panel = document.getElementById('layoutPresetPanel');
+  if (!panel) return;
+  if (!panel.contains(e?.target)) {
+    panel.style.display = 'none';
+  }
+}
+
+async function saveCurrentAsPreset() {
+  const ds = state.uploadDesigner;
+  if (ds.mode !== 'welcome' || !ds.stageSize?.w || !ds.stageSize?.h) {
+    toast('웰컴보드 모드에서만 프리셋을 저장할 수 있습니다', 'error');
+    return;
+  }
+  const name = await uiPrompt('프리셋 이름', '');
+  if (!name) return;
+  const p = ds.placements?.[0];
+  const sw = ds.stageSize.w;
+  const sh = ds.stageSize.h;
+  const rect = p
+    ? { x: Math.round(p.x * sw), y: Math.round(p.y * sh), width: Math.round(p.w * sw), height: Math.round(p.h * sh) }
+    : { x: 0, y: 0, width: sw, height: sh };
+  try {
+    await api('POST', '/api/layout-presets', {
+      name: name.trim(),
+      canvas: { width: sw, height: sh },
+      rect
+    });
+    toast('프리셋 저장 완료');
+    loadLayoutPresets();
+  } catch (e) {
+    toast(e.message || '프리셋 저장 실패', 'error');
+  }
+}
+
+async function applyLayoutPreset(id) {
+  const preset = _layoutPresets.find(p => p.id === id);
+  if (!preset) return;
+  const ds = state.uploadDesigner;
+  const canvasW = Number(preset.canvas?.width || 3840);
+  const canvasH = Number(preset.canvas?.height || 2160);
+  const rx = Number(preset.rect?.x || 0);
+  const ry = Number(preset.rect?.y || 0);
+  const rw = Number(preset.rect?.width || canvasW);
+  const rh = Number(preset.rect?.height || canvasH);
+  ds.mode = 'welcome';
+  ds.stageSize = { w: canvasW, h: canvasH };
+  ds.orientation = canvasW >= canvasH ? 'landscape' : 'portrait';
+  const slot = {
+    id: 1,
+    x: Math.max(0, Math.min(1, rx / canvasW)),
+    y: Math.max(0, Math.min(1, ry / canvasH)),
+    w: Math.max(0.01, Math.min(1, rw / canvasW)),
+    h: Math.max(0.01, Math.min(1, rh / canvasH)),
+    fileIdx: ds.files.length > 0 ? 0 : null,
+    fit: 'cover', focusX: 50, focusY: 50, zoom: 100, aspectRatio: null
+  };
+  ds.placements = [slot];
+  ds.activeSlotIdx = 0;
+  document.getElementById('layoutPresetPanel').style.display = 'none';
+  syncDesignerPillUI();
+  renderDesignerLibrary();
+  renderDesignerStage();
+  syncDesignerSummary();
+  toast(`프리셋 '${preset.name}' 적용`);
+}
+
+async function renameLayoutPreset(id) {
+  const preset = _layoutPresets.find(p => p.id === id);
+  if (!preset) return;
+  const name = await uiPrompt('프리셋 이름 변경', preset.name || '');
+  if (!name) return;
+  try {
+    await api('PUT', `/api/layout-presets/${id}`, { name: name.trim() });
+    toast('프리셋 수정 완료');
+    loadLayoutPresets();
+  } catch (e) {
+    toast(e.message || '프리셋 수정 실패', 'error');
+  }
+}
+
+async function deleteLayoutPreset(id) {
+  const ok = await uiConfirm('이 프리셋을 삭제하시겠습니까?', '프리셋 삭제');
+  if (!ok) return;
+  try {
+    await api('DELETE', `/api/layout-presets/${id}`);
+    toast('프리셋 삭제 완료');
+    loadLayoutPresets();
+  } catch (e) {
+    toast(e.message || '프리셋 삭제 실패', 'error');
+  }
+}
+
 function syncDesignerPillUI() {
   const designer = document.querySelector('#uploadDesignerOverlay .upload-designer');
   if (designer) designer.classList.toggle('portrait-mode', state.uploadDesigner.orientation === 'portrait');
+  const isWelcome = state.uploadDesigner.mode === 'welcome';
+  const title = document.getElementById('uploadDesignerTitle');
+  if (title) title.textContent = isWelcome ? '웰컴보드 콘텐츠 등록' : '콘텐츠 등록';
+  const welcomeBtn = document.getElementById('designerWelcomeModeBtn');
+  if (welcomeBtn) {
+    welcomeBtn.textContent = isWelcome ? '일반 콘텐츠로 전환' : '웰컴보드 전환';
+    welcomeBtn.classList.toggle('active', isWelcome);
+  }
+  const aspectBar = document.getElementById('designerAspectBar');
+  if (aspectBar) aspectBar.style.display = isWelcome ? 'none' : '';
+  const welcomeBtns = document.getElementById('designerWelcomeBtns');
+  if (welcomeBtns) welcomeBtns.style.display = isWelcome ? 'flex' : 'none';
   const oBtns = [...document.querySelectorAll('#designerOrientationBar .designer-pill')];
   oBtns.forEach((btn, idx) => {
     const val = idx === 0 ? 'landscape' : 'portrait';
@@ -2277,8 +2917,15 @@ function fitDesignerStageToViewport() {
 }
 
 function onDesignerFilesSelected(fileList) {
-  const newFiles = Array.from(fileList || []);
+  const newFiles = appendDesignerFiles(fileList || []);
   if (!newFiles.length) return;
+  const input = document.getElementById('designerFileInput');
+  if (input) input.value = '';
+}
+
+function appendDesignerFiles(fileList) {
+  const newFiles = Array.from(fileList || []).filter((file) => file instanceof File);
+  if (!newFiles.length) return [];
   const prevLen = state.uploadDesigner.files.length;
   state.uploadDesigner.files = [...state.uploadDesigner.files, ...newFiles];
   state.uploadDesigner.selectedFileIdx = prevLen;
@@ -2291,11 +2938,10 @@ function onDesignerFilesSelected(fileList) {
   for (let i = 0; i < newFiles.length && i < emptySlots.length; i++) {
     placements[emptySlots[i]].fileIdx = prevLen + i;
   }
-  const input = document.getElementById('designerFileInput');
-  if (input) input.value = '';
   renderDesignerLibrary();
   renderDesignerStage();
   syncDesignerSummary();
+  return newFiles;
 }
 
 function syncDesignerSummary() {
@@ -2303,7 +2949,26 @@ function syncDesignerSummary() {
   if (!el) return;
   const ds = state.uploadDesigner;
   const assigned = (ds.placements || []).filter(p => p.fileIdx !== null && p.fileIdx !== undefined).length;
-  el.textContent = `파일 ${ds.files.length}개 · 슬롯 ${ds.placements.length}개 · 배치 ${assigned}개`;
+  const targetGroup = (state.groups || []).find(g => g.id === ds.targetGroupId);
+  const groupLabel = targetGroup ? targetGroup.name : '미분류';
+  const modeLabel = ds.mode === 'welcome' ? `웰컴보드 ${ds.stageSize?.w || '-'}x${ds.stageSize?.h || '-'}` : '일반';
+  el.textContent = `${modeLabel} · 파일 ${ds.files.length}개 · 슬롯 ${ds.placements.length}개 · 배치 ${assigned}개 · 그룹 ${groupLabel}`;
+}
+
+function renderDesignerGroupOptions() {
+  const select = document.getElementById('designerTargetGroupSelect');
+  if (!select) return;
+  const options = [{ value: '', label: '저장 그룹 · 미분류' }].concat(
+    (state.groups || []).map((group) => ({ value: group.id, label: `저장 그룹 · ${group.name}` }))
+  );
+  select.innerHTML = options.map((option) => (
+    `<option value="${escapeHtml(String(option.value || ''))}" ${String(option.value || '') === String(state.uploadDesigner.targetGroupId || '') ? 'selected' : ''}>${escapeHtml(option.label)}</option>`
+  )).join('');
+}
+
+function updateDesignerTargetGroup(groupId) {
+  state.uploadDesigner.targetGroupId = groupId || null;
+  syncDesignerSummary();
 }
 
 function guessDesignerMediaType(filename) {
@@ -2378,6 +3043,8 @@ function openDesignerForEdit(item) {
   state.uploadDesigner.editingId = webId;
   state.uploadDesigner.editingMediaFilename = null;
   state.uploadDesigner.contentName = item.label || '';
+  state.uploadDesigner.mode = designer.mode === 'welcome' ? 'welcome' : 'standard';
+  state.uploadDesigner.welcomeDisplayId = designer.welcomeDisplayId || null;
   state.uploadDesigner.orientation = designer.orientation === 'portrait' ? 'portrait' : 'landscape';
   state.uploadDesigner.split = [1, 2, 3, 4].includes(Number(designer.split)) ? Number(designer.split) : 1;
   state.uploadDesigner.files = files;
@@ -2405,6 +3072,7 @@ function openDesignerForEdit(item) {
   if (!state.uploadDesigner.files.length) state.uploadDesigner.selectedFileIdx = null;
   else state.uploadDesigner.selectedFileIdx = 0;
   document.getElementById('uploadDesignerOverlay').style.display = 'flex';
+  renderDesignerGroupOptions();
   syncDesignerPillUI();
   renderDesignerLibrary();
   renderDesignerStage();
@@ -2434,6 +3102,8 @@ function openDesignerForMediaEdit(item) {
   state.uploadDesigner.drag = null;
   state.uploadDesigner.objectUrls = {};
   if (designer && Array.isArray(designer.placements) && designer.placements.length) {
+    state.uploadDesigner.mode = designer.mode === 'welcome' ? 'welcome' : 'standard';
+    state.uploadDesigner.welcomeDisplayId = designer.welcomeDisplayId || null;
     state.uploadDesigner.orientation = designer.orientation === 'portrait' ? 'portrait' : 'landscape';
     state.uploadDesigner.split = [1, 2, 3, 4].includes(Number(designer.split)) ? Number(designer.split) : 1;
     state.uploadDesigner.stageSize = {
@@ -2484,6 +3154,8 @@ function openDesignerForMediaEdit(item) {
       aspectRatio: null
     }));
   } else {
+    state.uploadDesigner.mode = 'standard';
+    state.uploadDesigner.welcomeDisplayId = null;
     state.uploadDesigner.orientation = 'landscape';
     state.uploadDesigner.split = 1;
     resetDesignerLayout();
@@ -2491,6 +3163,7 @@ function openDesignerForMediaEdit(item) {
   }
   state.uploadDesigner.activeSlotIdx = 0;
   document.getElementById('uploadDesignerOverlay').style.display = 'flex';
+  renderDesignerGroupOptions();
   syncDesignerPillUI();
   renderDesignerLibrary();
   renderDesignerStage();
@@ -2617,7 +3290,6 @@ async function addDesignerWeatherSource() {
   });
   if (!raw) return;
   if (!raw.selected) {
-    toast('위치를 검색 후 목록에서 선택하세요', 'error');
     return;
   }
   const sel = raw.selected;
@@ -2658,8 +3330,10 @@ async function addDesignerWeatherSource() {
 function getDesignerBaseLayout(split, orientation) {
   const isPortrait = orientation === 'portrait';
   // 16:9 / 9:16 비율 고정 (예: 1920x1080, 1080x1920)
-  const w = isPortrait ? 540 : 960;
-  const h = isPortrait ? 960 : 540;
+  const isWelcome = state.uploadDesigner.mode === 'welcome';
+  const currentStage = state.uploadDesigner.stageSize || {};
+  const w = isWelcome ? Math.max(100, Number(currentStage.w || 3840)) : (isPortrait ? 540 : 960);
+  const h = isWelcome ? Math.max(100, Number(currentStage.h || 2160)) : (isPortrait ? 960 : 540);
   const layouts = {
     1: [{ x: 0, y: 0, w: 1, h: 1 }],
     2: isPortrait
@@ -2785,7 +3459,7 @@ function renderDesignerStage() {
   requestAnimationFrame(fitDesignerStageToViewport);
 }
 
-function removeDesignerArea(event, slotIdx) {
+async function removeDesignerArea(event, slotIdx) {
   event.preventDefault();
   event.stopPropagation();
   const ds = state.uploadDesigner;
@@ -2793,6 +3467,13 @@ function removeDesignerArea(event, slotIdx) {
     toast('최소 1개 영역은 필요합니다', 'error');
     return;
   }
+  const ok = await uiModalOpen({
+    title: '영역 삭제',
+    message: `${slotIdx + 1}번 영역을 삭제할까요?`,
+    okText: '삭제',
+    cancelText: '취소'
+  });
+  if (!ok) return;
   ds.placements.splice(slotIdx, 1);
   ds.placements.forEach((p, i) => { p.id = i + 1; });
   if (ds.activeSlotIdx === null || ds.activeSlotIdx === undefined) {
@@ -2822,8 +3503,35 @@ function onDesignerSlotDragOver(e) {
   e.preventDefault();
 }
 
+function onDesignerExternalDragOver(e) {
+  e.preventDefault();
+  if (e?.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+}
+
+function onDesignerExternalDrop(e) {
+  e.preventDefault();
+  const files = Array.from(e?.dataTransfer?.files || []);
+  if (!files.length) return;
+  const added = appendDesignerFiles(files);
+  if (added.length) toast(`${added.length}개 파일을 추가했습니다`);
+}
+
 function onDesignerSlotDrop(e, slotIdx) {
   e.preventDefault();
+  const externalFiles = Array.from(e?.dataTransfer?.files || []);
+  if (externalFiles.length) {
+    const before = state.uploadDesigner.files.length;
+    const added = appendDesignerFiles(externalFiles);
+    if (added.length) {
+      const p = state.uploadDesigner.placements?.[slotIdx];
+      if (p) p.fileIdx = before;
+      state.uploadDesigner.activeSlotIdx = slotIdx;
+      renderDesignerStage();
+      syncDesignerSummary();
+      toast(`${added.length}개 파일을 추가했습니다`);
+    }
+    return;
+  }
   const idx = parseInt(e.dataTransfer.getData('text/plain'), 10);
   if (Number.isNaN(idx)) return;
   const p = state.uploadDesigner.placements?.[slotIdx];
@@ -2956,6 +3664,7 @@ function onDesignerSlotWheel(e, slotIdx) {
 }
 
 function stopDesignerDrag() {
+  state.uploadDesigner.closeGuardUntil = Date.now() + 180;
   state.uploadDesigner.drag = null;
   document.removeEventListener('mousemove', onDesignerDragging);
   document.removeEventListener('mouseup', stopDesignerDrag);
@@ -2965,6 +3674,21 @@ async function submitUploadDesigner() {
   const ds = state.uploadDesigner;
   if (!ds.files.length || !(ds.placements || []).some(p => p.fileIdx !== null && p.fileIdx !== undefined && ds.files[p.fileIdx])) {
     toast('배치된 콘텐츠가 없습니다', 'error');
+    return;
+  }
+  const invalidWeatherPlacement = (ds.placements || []).find((p) => {
+    if (p.fileIdx === null || p.fileIdx === undefined) return false;
+    const file = ds.files?.[p.fileIdx];
+    if (!file?.__web) return false;
+    return !String(file.url || '').trim();
+  });
+  if (invalidWeatherPlacement) {
+    await uiModalOpen({
+      title: '날씨 콘텐츠 확인',
+      message: '위치가 설정되지 않은 날씨 콘텐츠가 있어 저장할 수 없습니다. 날씨 콘텐츠 추가에서 위치를 검색하고 선택한 뒤 다시 시도하세요.',
+      okText: '확인',
+      cancelText: ''
+    });
     return;
   }
   const uploadedHiddenFilenames = [];
@@ -3048,6 +3772,8 @@ async function submitUploadDesigner() {
     const payload = {
       name: trimmedName,
       designer: {
+        mode: ds.mode === 'welcome' ? 'welcome' : 'standard',
+        welcomeDisplayId: ds.mode === 'welcome' ? (ds.welcomeDisplayId || null) : null,
         orientation: ds.orientation,
         split: ds.split,
         stageSize: ds.stageSize,
@@ -3066,10 +3792,7 @@ async function submitUploadDesigner() {
       toast('콘텐츠 수정 완료');
       await askImmediateContentRepublish();
     } else {
-      await api('POST', '/api/designer-contents', {
-        ...payload,
-        groupId: state.currentGroup || null
-      });
+      await api('POST', '/api/designer-contents', payload);
       toast('콘텐츠 등록 완료');
     }
     closeUploadDesigner();
@@ -3133,6 +3856,10 @@ async function editMedia(filename) {
     await askImmediateContentRepublish();
   }
   await loadMedia();
+  if (state.currentChId) {
+    await loadPickerData();
+    renderSchedItems();
+  }
   toast('콘텐츠 수정 완료');
 }
 
@@ -3179,7 +3906,7 @@ function renderScheduleGroupList() {
   });
 
   const ungroupedHtml = `
-    <div style="padding:8px 10px 6px 10px; font-size:11px; color:var(--muted); font-weight:700;">미분류 스케줄 (${ungrouped.length})</div>
+    <div style="padding:8px 10px 6px 10px; font-size:13px; color:var(--muted); font-weight:800;">미분류 스케줄 (${ungrouped.length})</div>
     <div style="border:1px dashed var(--border); border-radius:8px; margin:0 10px 12px 10px; background:#fff;"
       ondragover="onScheduleGroupDragOver(event)"
       ondrop="onScheduleDropToGroup(event, '')">
@@ -3194,7 +3921,7 @@ function renderScheduleGroupList() {
       <div style="padding:0 10px 12px 10px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 6px 0;">
           <button class="btn-action" style="font-size:11px; padding:2px 6px; min-width:26px;" onclick="toggleScheduleGroupCollapse('${g.id}')">${collapsed ? '▸' : '▾'}</button>
-          <strong style="font-size:11px; color:var(--text); flex:1; margin:0 6px;">${escapeHtml(g.name)} (${items.length})</strong>
+          <strong style="font-size:14px; font-weight:800; color:var(--text); flex:1; margin:0 6px;">${escapeHtml(g.name)} (${items.length})</strong>
           <button class="btn-action" style="font-size:11px; padding:2px 6px;" onclick="openScheduleGroupMenu(event, '${g.id}')">⋯</button>
         </div>
         ${collapsed ? '' : `
@@ -3264,16 +3991,57 @@ function selectChannel(id) {
       </div>
       <button class="btn btn-accent" onclick="saveSched()">저장 및 실시간 배포</button>
     </div>
-    <div id="schedItems" style="max-height:420px;overflow-y:auto;padding-right:6px;"></div>
-    <div style="margin-top:20px;border-top:2px solid var(--border);padding-top:16px;">
-      <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text);">콘텐츠 추가</div>
-      <div class="picker-group-tabs" id="pickerGroupTabs"></div>
-      <div id="pickerGrid" class="picker-grid-new"></div>
+    <div class="schedule-editor-grid">
+      <div class="schedule-picker-pane">
+        <div class="schedule-pane-head">
+          <div class="schedule-pane-title">등록 콘텐츠</div>
+          <small style="font-size:11px;color:var(--muted);">클릭으로 추가 / 편집 가능</small>
+        </div>
+        <div class="schedule-pane-body">
+          <div class="picker-group-tabs" id="pickerGroupTabs"></div>
+          <div id="pickerGrid" class="picker-grid-new"></div>
+        </div>
+      </div>
+      <div class="schedule-items-pane">
+        <div class="schedule-pane-head">
+          <div class="schedule-pane-title">스케줄 구성</div>
+          <small style="font-size:11px;color:var(--muted);">드래그로 순서 변경</small>
+        </div>
+        <div class="schedule-pane-body">
+          <div id="schedItems" style="max-height:640px;overflow-y:auto;padding-right:6px;"></div>
+        </div>
+      </div>
     </div>
   `;
   renderSchedItems();
   loadPickerData();
   renderScheduleGroupList();
+}
+
+function getMediaCatalogItemByFilename(filename) {
+  const target = String(filename || '');
+  return [...(state.mediaList || []), ...(state.allMediaForPicker || [])]
+    .find((item) => String(item.filename || '') === target) || null;
+}
+
+function getScheduleItemDisplayName(item) {
+  if (!item) return '콘텐츠';
+  const media = getMediaCatalogItemByFilename(item.filename);
+  if (item.type === 'web') return media?.label || item.label || item.webUrl || '웹 콘텐츠';
+  return media?.label || item.label || String(item.filename || '').replace(/^\d+_/, '');
+}
+
+function getScheduleItemPreviewMarkup(item, size = 46) {
+  if (!item) return `<div style="color:#555;font-size:9px">-</div>`;
+  if (item.type === 'video') {
+    return `<div style="color:#fff;font-size:18px;">▶</div>`;
+  }
+  if (item.type === 'web') {
+    const media = getMediaCatalogItemByFilename(item.filename);
+    const previewItem = media || { type: 'web', webUrl: item.webUrl || '', webKind: item.webKind || '', designer: item.designer || null };
+    return getWebPreviewMarkup(previewItem, size);
+  }
+  return `<img src="/media/${item.filename}" style="width:${size}px;height:${size}px;object-fit:cover;" onerror="this.parentNode.innerHTML='<div style=color:#555;font-size:9px>IMG</div>'">`;
 }
 
 function renderSchedItems() {
@@ -3290,18 +4058,30 @@ function renderSchedItems() {
       style="${isExpired(it)?'opacity:0.5;filter:grayscale(1);':''}">
       <div class="drag-handle" title="드래그로 순서 변경">⠿</div>
       <div style="width:46px;height:46px;background:#111;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
-        ${it.type==='video'
-          ? `<div style="color:#fff;font-size:18px;">▶</div>`
-          : it.type==='web'
-            ? `<div style="color:#9fb3c8;font-size:14px;font-weight:700;">WEB</div>`
-            : `<img src="/media/${it.filename}" style="width:46px;height:46px;object-fit:cover;" onerror="this.parentNode.innerHTML='<div style=color:#555;font-size:9px>IMG</div>'">`}
+        ${getScheduleItemPreviewMarkup(it, 46)}
       </div>
       <div class="sched-info">
-        <strong style="font-size:12px;">${(it.type === 'web' ? (it.label || it.webUrl || '웹 콘텐츠') : it.filename).replace(/^\d+_/, '')}</strong>
+        <div class="sched-title-row">
+          <div class="sched-title-main">
+            <strong>${escapeHtml(getScheduleItemDisplayName(it))}</strong>
+          </div>
+          <div class="sched-item-actions">
+            <button class="btn-action" type="button" onclick="toggleScheduleItemMute(${i})" style="${it.muted ? 'border-color:var(--danger);color:var(--danger);font-weight:700;' : ''}">${it.muted ? '음소거 ON' : '음소거 OFF'}</button>
+          </div>
+        </div>
         <div class="sched-params">
-          ${it.type === 'web' ? `<div>소스: <code>${escapeHtml(it.webUrl || '')}</code></div>` : ''}
-          <div>기간: <input type="datetime-local" step="1" value="${toDatetimeLocalValue(it.startAt)}" onchange="updateItem(${i},'startAt',this.value)"> ~ <input type="datetime-local" step="1" value="${toDatetimeLocalValue(it.endAt)}" onchange="updateItem(${i},'endAt',this.value)">
-            ${(!it.startAt && !it.endAt) ? '<span style="font-size:10px;color:var(--online);margin-left:6px;font-weight:700;">∞ 무한재생</span>' : ''}
+          <div class="schedule-item-period-row"><span>기간:</span>
+            <button class="btn-action" type="button" onclick="toggleScheduleItemInfinite(${i})" style="${isScheduleItemInfinite(it) ? 'border-color:var(--online);color:var(--online);font-weight:700;' : ''}">∞ 무한재생</button>
+            <span class="schedule-date-field">
+              <input id="scheduleDateInput-${i}-startAt" class="schedule-date-input" type="datetime-local" step="1" value="${escapeHtml(toDatetimeLocalValue(it.startAt))}" onchange="updateScheduleDateField(${i},'startAt',this.value,this)" ${isScheduleItemInfinite(it) ? 'disabled' : ''}>
+            </span>
+            <span>~</span>
+            <span class="schedule-date-field">
+              <input id="scheduleDateInput-${i}-endAt" class="schedule-date-input" type="datetime-local" step="1" value="${escapeHtml(toDatetimeLocalValue(it.endAt))}" onchange="updateScheduleDateField(${i},'endAt',this.value,this)" ${isScheduleItemInfinite(it) ? 'disabled' : ''}>
+            </span>
+            ${isScheduleItemInfinite(it)
+              ? '<span style="font-size:10px;color:var(--online);margin-left:6px;font-weight:700;">무한재생 활성</span>'
+              : ''}
           </div>
           <div>재생시간: <input type="number" value="${it.duration}" style="width:60px;font-weight:700;color:var(--primary);" onchange="updateItem(${i},'duration',this.value)"> 초
             ${it.type==='video'?`<label style="margin-left:10px;"><input type="checkbox" ${it.useNative?'checked':''} onchange="updateItem(${i},'useNative',this.checked)"> 원본 길이</label>`:''}
@@ -3345,14 +4125,15 @@ async function loadPickerData() {
   state.pickerGroups = grpData.groups;
   const tabs = document.getElementById('pickerGroupTabs');
   if (!tabs) return;
-  tabs.innerHTML = `<button class="picker-group-tab active" onclick="renderPicker(null,this)">전체 <small style="opacity:.6;">${allMedia.length}</small></button>`
+  tabs.innerHTML = `<button class="picker-group-tab ${state.currentPickerGroupId ? '' : 'active'}" onclick="renderPicker(null,this)">전체 <small style="opacity:.6;">${allMedia.length}</small></button>`
     + grpData.groups.map(g =>
-        `<button class="picker-group-tab" onclick="renderPicker('${g.id}',this)">${g.name} <small style="opacity:.6;">${g.files.length}</small></button>`
+        `<button class="picker-group-tab ${state.currentPickerGroupId === g.id ? 'active' : ''}" onclick="renderPicker('${g.id}',this)">${g.name} <small style="opacity:.6;">${g.files.length}</small></button>`
       ).join('');
-  renderPicker(null, null);
+  renderPicker(state.currentPickerGroupId || null, null);
 }
 
 function renderPicker(groupId, btn) {
+  state.currentPickerGroupId = groupId || null;
   if (btn) {
     document.querySelectorAll('.picker-group-tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
@@ -3375,11 +4156,11 @@ function renderPicker(groupId, btn) {
       ? (f.label || f.webUrl || '웹 콘텐츠')
       : f.filename.replace(/^\d+_/, '');
     const thumb = f.type === 'web'
-      ? `<div style="color:#9fb3c8;font-size:13px;font-weight:700;">${f.webKind === 'designer' ? 'LAYOUT' : 'WEB'}</div>`
+      ? getWebPreviewMarkup(f, 72)
       : f.type === 'video'
       ? `<div style="color:#888;font-size:22px;">▶</div>`
       : `<img src="/media/${f.filename}" loading="lazy" onerror="this.parentNode.innerHTML='<div style=color:#555;font-size:9px>미리보기없음</div>'">`;
-    return `<div class="picker-card" onclick="addIt('${f.filename}','${f.type}','${escapeHtml(f.webUrl || '')}','${escapeHtml(f.label || '')}')" title="${disp}">
+    return `<div class="picker-card" onclick="addIt('${f.filename}','${f.type}','${escapeHtml(f.webUrl || '')}','${escapeHtml(f.label || '')}',${f.muted ? 'true' : 'false'})" title="${disp}">
       <div class="picker-thumb">${thumb}</div>
       <div class="picker-name">${disp}</div>
     </div>`;
@@ -3391,13 +4172,13 @@ function updateItem(i, k, v) {
   ch.items[i][k] = (k === 'duration') ? parseInt(v) : v;
   state.dirtyScheduleEditor = true;
 }
-function addIt(f, t, webUrl = '', label = '') {
+function addIt(f, t, webUrl = '', label = '', muted = false) {
   const ch = state.channels.find(c => c.id === state.currentChId);
-  const item = { filename: f, type: t, duration: 10, useNative: t === 'video', startAt: '', endAt: '' };
+  const item = { filename: f, type: t, duration: 10, useNative: t === 'video', startAt: '', endAt: '', alwaysOn: false, muted: !!muted, label: label || '' };
   if (t === 'web') {
     item.webUrl = webUrl || '';
     item.label = label || f;
-    item.duration = 15;
+    item.duration = 10;
     item.useNative = false;
   }
   ch.items.push(item);
@@ -3405,14 +4186,40 @@ function addIt(f, t, webUrl = '', label = '') {
   renderSchedItems(); // 피커는 유지, 아이템만 갱신
 }
 
-function removeIt(i) {
+function openScheduledSourceEdit(index) {
   const ch = state.channels.find(c => c.id === state.currentChId);
+  const item = ch?.items?.[index];
+  if (!item?.filename) return;
+  editMedia(item.filename);
+}
+
+function toggleScheduleItemMute(index) {
+  const ch = state.channels.find(c => c.id === state.currentChId);
+  const item = ch?.items?.[index];
+  if (!item) return;
+  item.muted = !item.muted;
+  state.dirtyScheduleEditor = true;
+  renderSchedItems();
+}
+
+async function removeIt(i) {
+  const ch = state.channels.find(c => c.id === state.currentChId);
+  const item = ch?.items?.[i];
+  if (!ch || !item) return;
+  const itemName = (item.type === 'web' ? (item.label || item.webUrl || '웹 콘텐츠') : item.filename).replace(/^\d+_/, '');
+  const ok = await uiModalOpen({ title: '콘텐츠 제거', message: `'${escapeHtml(itemName)}' 콘텐츠를 스케줄에서 제거할까요?` });
+  if (!ok) return;
   ch.items.splice(i, 1);
   state.dirtyScheduleEditor = true;
   renderSchedItems();
 }
 async function saveSched() {
   const ch = state.channels.find(c => c.id === state.currentChId);
+  const invalidItem = (ch?.items || []).find((item) => !isScheduleItemInfinite(item) && !String(item.startAt || '').trim() && !String(item.endAt || '').trim());
+  if (invalidItem) {
+    toast('무한재생을 켜거나 시작/종료 기간을 설정해야 저장할 수 있습니다', 'error');
+    return;
+  }
   await api('PUT', `/api/schedules/${ch.id}`, { items: ch.items });
   state.dirtyScheduleEditor = false;
   toast('저장 및 배포 완료');
@@ -3458,7 +4265,13 @@ async function renameSchedule(event, id) {
 async function deleteSchedule(id) {
   const schedule = (state.channels || []).find(c => c.id === id);
   if (!schedule) return;
-  const ok = await uiModalOpen({ title: '스케줄 삭제', message: `스케줄 '${schedule.name}' 을(를) 삭제할까요?` });
+  const linkedChannels = (state.channelDefs || []).filter((channel) =>
+    channel.scheduleId === id || (channel.rules || []).some((rule) => rule.scheduleId === id)
+  );
+  const warning = linkedChannels.length
+    ? `<br><br><span style="color:var(--danger);font-weight:700;">현재 ${linkedChannels.length}개 채널에서 이 스케줄을 사용 중입니다.</span><br><span style="color:var(--muted);font-size:12px;">삭제하면 연결된 채널의 기본/규칙 스케줄에서도 함께 제거됩니다.</span>`
+    : '';
+  const ok = await uiModalOpen({ title: '스케줄 삭제', message: `스케줄 '${schedule.name}' 을(를) 삭제할까요?${warning}` });
   if (!ok) return;
   await api('DELETE', `/api/schedules/${id}`);
   if (state.currentChId === id) state.currentChId = null;
@@ -3510,6 +4323,59 @@ function toDatetimeLocalValue(value) {
   return `${y}-${m}-${d}T${h}:${mi}:${s}`;
 }
 
+function toScheduleDateText(value) {
+  const normalized = toDatetimeLocalValue(value);
+  return normalized ? normalized.replace('T', ' ') : '';
+}
+
+function normalizeScheduleDateInput(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const normalized = raw.replace('T', ' ').replace(/\./g, '-').replace(/\s+/g, ' ');
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return null;
+  const iso = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6] || '00'}`;
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return null;
+  return iso;
+}
+
+function isScheduleItemInfinite(item) {
+  return item?.alwaysOn === true;
+}
+
+function toggleScheduleItemInfinite(index) {
+  const ch = state.channels.find(c => c.id === state.currentChId);
+  const item = ch?.items?.[index];
+  if (!item) return;
+  const next = !isScheduleItemInfinite(item);
+  item.alwaysOn = next;
+  if (next) {
+    item.startAt = '';
+    item.endAt = '';
+  } else if (!item.startAt && !item.endAt) {
+    item.alwaysOn = false;
+  }
+  state.dirtyScheduleEditor = true;
+  renderSchedItems();
+}
+
+function updateScheduleDateField(index, key, value, inputEl) {
+  const ch = state.channels.find(c => c.id === state.currentChId);
+  const item = ch?.items?.[index];
+  if (!item) return;
+  const normalized = normalizeScheduleDateInput(value);
+  if (normalized === null) {
+    toast('시간 형식은 YYYY-MM-DD HH:MM:SS 입니다', 'error');
+    if (inputEl) inputEl.value = toDatetimeLocalValue(item[key]);
+    return;
+  }
+  item.alwaysOn = false;
+  updateItem(index, key, normalized);
+  if (inputEl) inputEl.value = toDatetimeLocalValue(normalized);
+  renderSchedItems();
+}
+
 function parseRuleRange(rule) {
   const start = rule.startAt ? new Date(rule.startAt).getTime() : -Infinity;
   const end = rule.endAt ? new Date(rule.endAt).getTime() : Infinity;
@@ -3541,6 +4407,8 @@ function normalizeRuleShape(rule) {
   if (!rule) return;
   if (rule.repeatWeekly === undefined) rule.repeatWeekly = false;
   if (!rule.section) rule.section = rule.repeatWeekly ? 'weekly' : 'reserved';
+  if (rule.section === 'weekly') rule.repeatWeekly = true;
+  if (rule.section === 'reserved') rule.repeatWeekly = false;
   if (!rule.color) rule.color = '#5e81ac';
   if (!Array.isArray(rule.weekdays)) rule.weekdays = [];
   if (rule.startTime === undefined) rule.startTime = '';
@@ -3725,7 +4593,7 @@ function registerChannelCalendarEvent(ev) {
 }
 
 function closeChannelCalendarDetail(e) {
-  if (e && e.target && e.target.id !== 'channelCalendarDetailOverlay') return;
+  if (e) return;
   state.channelCalendarDetail.open = false;
   state.channelCalendarDetail.edit = false;
   state.channelCalendarDetail.event = null;
@@ -3785,10 +4653,9 @@ function renderChannelCalendarDetail() {
     return;
   }
   const selectedGroupId = rule.scheduleGroupId || groups[0]?.id || '';
-  body.innerHTML = `
+    body.innerHTML = `
     <div class="calendar-detail-grid">
-      <div><label style="font-size:11px;color:var(--muted);">규칙명</label>${isEdit ? `<input id="calDetRuleName" value="${escapeHtml(rule.name || '')}">` : `<div>${escapeHtml(rule.name || '(이름 없음)')}</div>`}</div>
-      <div><label style="font-size:11px;color:var(--muted);">유형</label>${isEdit ? `<select id="calDetRuleMode" onchange="onDetailRuleModeChange()"><option value="weekly" ${rule.repeatWeekly?'selected':''}>주간 반복</option><option value="period" ${rule.repeatWeekly?'':'selected'}>기간</option></select>` : `<div>${rule.repeatWeekly ? '주간 반복' : '기간'}</div>`}</div>
+      <div><label style="font-size:11px;color:var(--muted);">유형</label><div>${rule.repeatWeekly ? '주간 반복' : '기간 반복'}</div></div>
       <div><label style="font-size:11px;color:var(--muted);">활성</label>${isEdit ? `<select id="calDetRuleEnabled"><option value="1" ${rule.enabled!==false?'selected':''}>활성</option><option value="0" ${rule.enabled===false?'selected':''}>비활성</option></select>` : `<div>${rule.enabled!==false?'활성':'비활성'}</div>`}</div>
       <div><label style="font-size:11px;color:var(--muted);">색상</label>${isEdit ? `<div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${escapeHtml(rule.color || '#5e81ac')};border:1px solid var(--border);"></span><input id="calDetRuleColor" type="color" value="${escapeHtml(rule.color || '#5e81ac')}" style="width:44px;height:28px;padding:2px;border:1px solid var(--border);border-radius:6px;background:var(--surface);"><span style="font-size:11px;color:var(--muted);">${escapeHtml(rule.color || '#5e81ac')}</span></div>` : `<div><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${escapeHtml(rule.color || '#5e81ac')};vertical-align:middle;margin-right:6px;"></span>${escapeHtml(rule.color || '#5e81ac')}</div>`}</div>
       <div><label style="font-size:11px;color:var(--muted);">그룹</label>${isEdit ? `<select id="calDetRuleGroup" onchange="updateDetailRuleGroupOptions()">${groups.map(g=>`<option value="${g.id}" ${selectedGroupId===g.id?'selected':''}>${escapeHtml(g.name)}</option>`).join('')}</select>` : `<div>${escapeHtml(groups.find(g=>g.id===selectedGroupId)?.name || '-')}</div>`}</div>
@@ -3821,8 +4688,8 @@ function updateDetailRuleGroupOptions() {
 }
 
 function onDetailRuleModeChange() {
-  const mode = document.getElementById('calDetRuleMode')?.value || 'period';
-  const isWeekly = mode === 'weekly';
+  const event = state.channelCalendarDetail.event;
+  const isWeekly = event?.section === 'weekly' || event?.type === 'weekly';
   const set = (id, show) => {
     const el = document.getElementById(id);
     if (el) el.style.display = show ? '' : 'none';
@@ -3846,13 +4713,11 @@ async function saveChannelCalendarDetail() {
   } else {
     const rule = (channel.rules || []).find(r => r.id === event.ruleId);
     if (!rule) return;
-    rule.name = document.getElementById('calDetRuleName')?.value || '';
     rule.enabled = (document.getElementById('calDetRuleEnabled')?.value || '1') === '1';
     rule.color = document.getElementById('calDetRuleColor')?.value || rule.color || '#5e81ac';
     const groupId = document.getElementById('calDetRuleGroup')?.value || rule.scheduleGroupId || '';
     const scheduleId = document.getElementById('calDetRuleSchedule')?.value || '';
-    const mode = document.getElementById('calDetRuleMode')?.value || (rule.repeatWeekly ? 'weekly' : 'period');
-    const nextWeekly = mode === 'weekly';
+    const nextWeekly = (rule.section || (rule.repeatWeekly ? 'weekly' : 'reserved')) === 'weekly';
     rule.scheduleGroupId = groupId;
     rule.scheduleId = scheduleId;
     rule.repeatWeekly = nextWeekly;
@@ -3886,16 +4751,16 @@ function openChannelCalendar(channelId) {
     state.currentChannelDefId = channelId;
   }
   state.channelCalendar.open = true;
-  state.channelCalendar.jumpOpen = false;
+  state.channelCalendar.jumpOpen = true;
   const ov = document.getElementById('channelCalendarOverlay');
   if (ov) ov.style.display = 'flex';
   renderChannelCalendar();
 }
 
 function closeChannelCalendar(e) {
-  if (e && e.target && e.target.id !== 'channelCalendarOverlay') return;
+  if (e) return;
   state.channelCalendar.open = false;
-  state.channelCalendar.jumpOpen = false;
+  state.channelCalendar.jumpOpen = true;
   const ov = document.getElementById('channelCalendarOverlay');
   if (ov) ov.style.display = 'none';
 }
@@ -4123,19 +4988,14 @@ function renderChannelRuleRows(channel, rules, section) {
       ondragover="onChannelRuleDragOver(event)"
       ondrop="onChannelRuleDrop(event, '${section}', ${idx})"
       ondragend="onChannelRuleDragEnd(event, '${section}')">
-      <div style="display:grid; grid-template-columns: 24px 1.2fr 130px 84px 72px 60px; gap:8px; align-items:end;">
+      <div style="display:grid; grid-template-columns: 24px 130px 84px 72px 60px; gap:8px; align-items:end;">
         <div draggable="true" ondragstart="onChannelRuleDragStart(event, '${section}', ${idx})" title="드래그해서 순서 변경"
           style="cursor:grab; user-select:none; text-align:center; font-size:15px; color:var(--muted); padding-bottom:8px;">⠿</div>
         <div>
-          <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;">규칙명</label>
-          <input type="text" value="${escapeHtml(rule.name || '')}" placeholder="예: 평일 오전" onchange="updateChannelRuleField('${section}', ${idx}, 'name', this.value)">
-        </div>
-        <div>
           <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;">규칙 유형</label>
-          <select onchange="updateChannelRuleMode('${section}', ${idx}, this.value)">
-            <option value="period" ${rule.repeatWeekly ? '' : 'selected'}>기간</option>
-            <option value="weekly" ${rule.repeatWeekly ? 'selected' : ''}>주간 반복</option>
-          </select>
+          <div style="height:34px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);font-size:12px;display:flex;align-items:center;">
+            ${section === 'weekly' ? '주간 반복' : '기간 반복'}
+          </div>
         </div>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;">
           <input type="checkbox" ${rule.enabled !== false ? 'checked' : ''} onchange="updateChannelRuleField('${section}', ${idx}, 'enabled', this.checked)">
@@ -4157,7 +5017,7 @@ function renderChannelRuleRows(channel, rules, section) {
           </select>
         </div>
         <div>
-          <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;">스케줄 (우선순위 ${idx + 1})</label>
+          <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;">스케줄 선택</label>
           <select onchange="updateChannelRuleField('${section}', ${idx}, 'scheduleId', this.value)" ${groups.length ? '' : 'disabled'}>
             <option value="">-- 선택 --</option>
             ${state.channelSchedules
@@ -4211,10 +5071,11 @@ function renderPriorityPreview(channel) {
   const { weeklyRules, reservedRules } = getChannelRuleBuckets(channel);
   const activeWeekly = weeklyRules.filter(r => r.enabled !== false);
   const activeReserved = reservedRules.filter(r => r.enabled !== false);
-  const merged = [...activeWeekly, ...activeReserved];
+  const merged = [...activeReserved, ...activeWeekly];
   if (!merged.length && !channel.scheduleId) return '<div style="font-size:12px;color:var(--text);">1순위: ?</div>';
   const lines = merged.map((rule, idx) => {
-    const name = rule.name ? `${rule.name} (${(rule.scheduleId && schedules.get(rule.scheduleId)) || '?'})` : ((rule.scheduleId && schedules.get(rule.scheduleId)) || '?');
+    const prefix = rule.repeatWeekly || rule.section === 'weekly' ? '요일' : '예약';
+    const name = `${prefix} · ${((rule.scheduleId && schedules.get(rule.scheduleId)) || '?')}`;
     return `<div style="font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:${escapeHtml(rule.color || '#5e81ac')};display:inline-block;border:1px solid var(--border);"></span>${idx + 1}순위: ${escapeHtml(name)}</div>`;
   });
   const baseName = channel.scheduleId ? (schedules.get(channel.scheduleId) || '?') : '?';
@@ -4484,11 +5345,18 @@ function getRuleBySection(channel, section, index) {
   return bucket[index] || null;
 }
 
-function removeChannelRule(section, index) {
+async function removeChannelRule(section, index) {
   const channel = getChannelDefById(state.currentChannelDefId);
   if (!channel || !Array.isArray(channel.rules)) return;
   const target = getRuleBySection(channel, section, index);
   if (!target) return;
+  const ok = await uiModalOpen({
+    title: '규칙 삭제',
+    message: `'${target.name || '이 규칙'}' 을(를) 삭제할까요?`,
+    okText: '삭제',
+    cancelText: '취소'
+  });
+  if (!ok) return;
   channel.rules = channel.rules.filter(rule => rule !== target);
   state.dirtyChannelEditor = true;
   renderChannelDef(channel.id);
@@ -4565,7 +5433,8 @@ function updateChannelRuleMode(section, index, mode) {
   if (!channel || !Array.isArray(channel.rules)) return;
   const rule = getRuleBySection(channel, section, index);
   if (!rule) return;
-  rule.section = section;
+  const nextSection = mode === 'weekly' ? 'weekly' : 'reserved';
+  rule.section = nextSection;
   if (mode === 'weekly') {
     rule.repeatWeekly = true;
     rule.weekdays = (rule.weekdays && rule.weekdays.length) ? rule.weekdays : [1, 2, 3, 4, 5];
@@ -4579,6 +5448,7 @@ function updateChannelRuleMode(section, index, mode) {
     rule.startTime = '';
     rule.endTime = '';
   }
+  state.currentChannelRuleTab = nextSection;
   state.dirtyChannelEditor = true;
   renderChannelDef(channel.id);
 }
@@ -4649,14 +5519,15 @@ async function saveChannelDef() {
   }) || !!channel.scheduleId;
   const weeklyRules = allRules.filter(rule => (rule.section || (rule.repeatWeekly ? 'weekly' : 'reserved')) === 'weekly');
   const reservedRules = allRules.filter(rule => (rule.section || (rule.repeatWeekly ? 'weekly' : 'reserved')) === 'reserved');
-  const orderedRules = [...weeklyRules, ...reservedRules];
+  const orderedRules = [...reservedRules, ...weeklyRules];
   const rules = orderedRules.map((rule, idx) => {
-    const repeatWeekly = rule.repeatWeekly === true;
-    const basePriority = repeatWeekly ? 3000 : 2000;
+    const section = rule.section === 'weekly' ? 'weekly' : 'reserved';
+    const repeatWeekly = section === 'weekly';
+    const basePriority = repeatWeekly ? 2000 : 3000;
     return {
       ...rule,
       repeatWeekly,
-      section: rule.section || (repeatWeekly ? 'weekly' : 'reserved'),
+      section,
       startAt: repeatWeekly ? '' : (rule.startAt || ''),
       endAt: repeatWeekly ? '' : (rule.endAt || ''),
       weekdays: repeatWeekly ? ((rule.weekdays || []).map(v => parseInt(v, 10)).filter(v => v >= 0 && v <= 6)) : [],
@@ -4666,12 +5537,17 @@ async function saveChannelDef() {
       enabled: rule.enabled !== false
     };
   });
-  await api('PUT', `/api/channels/${channel.id}`, {
-    name,
-    scheduleId: channel.scheduleId || null,
-    defaultColor: channel.defaultColor || '#5e81ac',
-    rules
-  });
+  try {
+    await api('PUT', `/api/channels/${channel.id}`, {
+      name,
+      scheduleId: channel.scheduleId || null,
+      defaultColor: channel.defaultColor || '#5e81ac',
+      rules
+    });
+  } catch (e) {
+    toast(`채널 저장 실패: ${e.message || '오류가 발생했습니다'}`, 'error');
+    return;
+  }
   if (!hasPlayableRule) {
     toast('안내: 빈 플레이리스트입니다. 규칙 또는 기본 스케줄을 설정하세요.', 'error');
   }

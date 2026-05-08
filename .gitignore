@@ -1,4 +1,9 @@
+.DS_Store
+.claude/worktrees/
+*.wgt
+server.txt
 node_modules/
+welcome-player/
 data/
 media/library/
 *.log

@@ -1,7 +1,7 @@
 # API_REFERENCE — 최신 API / 데이터 흐름
 
 > 읽는 시점: 엔드포인트, 인증, 운영 데이터 흐름을 확인할 때
-> 관련 문서: `README.md`, `md file/UI_GUIDE.md`, `md file/OPERATIONS.md`
+> 관련 문서: `README.md`, `md file/UI_GUIDE.md`, `md file/OPERATIONS.md`, `md file/PLAYER_CONTRACT.md`
 
 ## 인증
 
@@ -108,6 +108,14 @@
 | POST | `/api/displays/group/control` | 필요 | 채널 기준 그룹 제어 |
 | POST | `/api/displays/bulk-action` | 필요 | 선택 기기 일괄 제어 |
 
+### 기기 유형
+
+- `signage`: 삼성 QMC/Tizen
+- `pc_web`: 일반 16:9 PC 웹 플레이어
+- `welcome_board_pc`: 웰컴보드용 고해상도/비정형 PC 플레이어
+- 기존 `pc` 값은 호환을 위해 서버에서 `pc_web`으로 정규화한다.
+- `welcome_board_pc`는 기기 데이터에 `output.canvas`, `output.rect`를 저장하며, 해당 기기에 보내는 플레이어 payload에도 `output`을 포함한다.
+
 ## 플레이어
 
 | Method | Path | 인증 | 설명 |
@@ -116,6 +124,13 @@
 | POST | `/api/players/reload` | 필요 | 플레이어 재로드 |
 | WebSocket | `/ws/player` | 없음 | 채널 스케줄 수신 |
 | GET | `/client` | 없음 | 플레이어 화면 |
+
+### 플레이어 계약
+
+- CMS/플레이어 간 메시지 계약은 `md file/PLAYER_CONTRACT.md`를 기준으로 한다.
+- 현재 기본 계약은 WebSocket `update`, `mode`, `reload` 수신과 `heartbeat` 보고다.
+- CMS 발신 메시지와 플레이어 heartbeat에는 `playerContractVersion: 1`을 포함한다.
+- 기본 16:9 PC 재생은 `/client` 웹 플레이어를 유지하고, 웰컴보드용 PC 플레이어만 고해상도/비정형 출력 계약을 추가 해석한다.
 
 ## 로그
 

@@ -44,6 +44,7 @@
 
 - [AGENTS.md](AGENTS.md) : 작업 시작 규칙
 - [DOC_INDEX.md](md%20file/DOC_INDEX.md) : 작업 유형별 문서 라우팅
+- [update.md](md%20file/update.md) : 버전별 변경 이력 요약
 - [PROJECT_STATUS.md](md%20file/PROJECT_STATUS.md) : 현재 구조, 최신 방향, 남은 이슈
 - [OPERATIONS.md](md%20file/OPERATIONS.md) : 설치, 실행, 데이터 이전, 운영 절차
 - [UI_GUIDE.md](md%20file/UI_GUIDE.md) : 관리자 UI/플레이어 UI 기준
@@ -66,3 +67,9 @@
 ├── custom-app/             # 커스텀 앱 관련 자료
 └── md file/                # 운영/개발 문서
 ```
+
+## update 문서 관리 규칙
+
+- 버전 단위 변경 요약은 `md file/update.md`에 누적합니다.
+- 코드 커밋 전에 이번 작업이 `md file/update.md`에 반영되었는지 확인합니다.
+- 이 파일에는 긴 설계 설명보다 “무엇이 바뀌었는지”만 날짜별로 간단히 적습니다.
