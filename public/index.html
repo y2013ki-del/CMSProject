@@ -1308,7 +1308,37 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function isStaticPreviewMode() {
+  return location.hostname.endsWith('github.io');
+}
+
+function getStaticPreviewResponse(url) {
+  const path = String(url || '').split('?')[0];
+  if (path === '/api/media') return [];
+  if (path === '/api/media-groups') return { groups: [] };
+  if (path === '/api/players/online') return [];
+  if (path === '/api/displays') return { displays: [] };
+  if (path === '/api/schedules') return { channels: [] };
+  if (path === '/api/channels') return { channels: [] };
+  if (path === '/api/displays/mdc-status') return {};
+  if (path === '/api/logs') return { lines: [] };
+  if (path === '/api/server-info') {
+    return {
+      host: location.host,
+      hostPort: location.host,
+      protocol: location.protocol.replace(':', ''),
+      port: '',
+      origin: location.origin
+    };
+  }
+  if (path === '/api/layout-presets') return { presets: [] };
+  return {};
+}
+
 async function api(method, url, body) {
+  if (isStaticPreviewMode() && String(url || '').startsWith('/api/')) {
+    return getStaticPreviewResponse(url);
+  }
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(url, opts);
@@ -2273,7 +2303,11 @@ async function loadMedia() {
         message: '로그인 세션이 만료되었거나 현재 접속 IP에서 인증되지 않았습니다. 다시 로그인 화면으로 이동합니다.',
         okText: '이동'
       });
-      location.href = '/login';
+      if (isStaticPreviewMode()) {
+        toast('GitHub Pages 미리보기에서는 로그인/API 없이 UI만 확인합니다.', 'error');
+      } else {
+        location.href = '/login';
+      }
       return;
     }
     toast(e.message, 'error');
